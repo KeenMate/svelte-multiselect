@@ -1,6 +1,5 @@
 <script>
-
-import {fade } from 'svelte/transition';
+	import { fade } from "svelte/transition";
 
 	import multiselectMixin from "./multiselectMixin";
 	import pointerMixin from "./pointerMixin";
@@ -163,191 +162,226 @@ import {fade } from 'svelte/transition';
 			? isOpen
 			: true);
 
-			function handleKeyDown(e) {
-				//TODO implement
-				//if down -> forward
-				//if up -> backward
-				// pointerBackward()
-				// pointerForward()
-			  }
+	function handleKeyDown(e) {
+		//TODO implement
+		//if down -> pointerForward()
+		//if up -> pointerBackward()
+		//if delete -> removeLastElement()
+		//
+	}
 
-				function handleKeyUp(e) {
-					//TODO implement
-					//if esc deactivate()
+	function handleKeyUp(e) {
+		//TODO implement
+		//if esc deactivate()
+	}
 
-				 }
+	function handleKeyPress(e) {
+		if (e.code == "Tab") addPointerElement(e);
+		// if tab => addPointerElement($event)
+	}
 
-				 function handleKeyPress(e){
-					if(e.code == "Tab")
-					addPointerElement(e)
-					// if tab => addPointerElement($event)
-				 }
-
-				 function tagHandleKeyPress(e){
-					if(e.code == "Enter")
-						removeElement(option)
-				 }
-
+	function tagHandleKeyPress(e) {
+		if (e.code == "Enter") removeElement(option);
+	}
 </script>
 
 <div
-    tabindex={searchable ? -1 : tabindex}
-    class:multiselect--active={ isOpen}
-		class:multiselect--disabled={ disabled}
-		class:multiselect--above={isAbove }
-    on:focus={activate}
-    on:blur={searchable ? false : deactivate()}
-    on:keydown|preventDefault={handleKeyDown}
-    on:keypress|preventDefault|stopPropagation={handleKeyPress}
-    on:keyup={handleKeyUp}
-    class="multiselect"
-    role="combobox"
-    aria-owns={'listbox-'+id}>
-      <slot name="caret" {toggle}>
-        <div on:mousedown|preventDefault|stopPropagation={toggle} class="multiselect__select"></div>
-      </slot>
-      <slot name="clear" search={search}></slot>
-      <div ref="tags" class="multiselect__tags">
-        <slot
-          name="selection"
-          search={search}
-          remove={removeElement}
-          values={visibleValues}
-          is-open={isOpen}
-        >
-					{#if visibleValues.length > 0}
-						<div class="multiselect__tags-wrap" on:mousedown|preventDefault >
-							{#each visibleValues as option,index}
-								<slot name="tag" option={option} search={search} remove={removeElement}>
-									<span class="multiselect__tag" >
+	tabindex={searchable ? -1 : tabindex}
+	class:multiselect--active={isOpen}
+	class:multiselect--disabled={disabled}
+	class:multiselect--above={isAbove}
+	on:focus={activate}
+	on:blur={searchable ? false : deactivate()}
+	on:keydown|preventDefault={handleKeyDown}
+	on:keypress|preventDefault|stopPropagation={handleKeyPress}
+	on:keyup={handleKeyUp}
+	class="multiselect"
+	role="combobox"
+	aria-owns={"listbox-" + id}
+>
+	<slot name="caret" {toggle}>
+		<div
+			on:mousedown|preventDefault|stopPropagation={toggle}
+			class="multiselect__select"
+		/>
+	</slot>
+	<slot name="clear" {search} />
+	<div ref="tags" class="multiselect__tags">
+		<slot
+			name="selection"
+			{search}
+			remove={removeElement}
+			values={visibleValues}
+			is-open={isOpen}
+		>
+			{#if visibleValues.length > 0}
+				<div class="multiselect__tags-wrap" on:mousedown|preventDefault>
+					{#each visibleValues as option, index}
+						<slot name="tag" {option} {search} remove={removeElement}>
+							<span class="multiselect__tag">
+								<span>{getOptionLabel(option)}</span>
+								<i
+									tabindex="1"
+									on:keypress|preventDefault={tagHandleKeyPress}
+									on:mousedown|preventDefault={removeElement(option)}
+									class="multiselect__tag-icon"
+								/>
+							</span>
+						</slot>
+					{/each}
+				</div>
+			{/if}
+			{#if internalValue && internalValue.length > limit}
+				<slot name="limit">
+					<strong class="multiselect__strong"
+						>{limitText(internalValue.length - limit)}</strong
+					>
+				</slot>
+			{/if}
+		</slot>
+		<div name="multiselect__loading" transition:fade>
+			<slot name="loading">
+				{#if loading}
+					<div class="multiselect__spinner" />
+				{/if}
+			</slot>
+		</div>
+		<input
+			ref="search"
+			v-if="searchable"
+			{name}
+			{id}
+			type="text"
+			autocomplete="off"
+			spellcheck="false"
+			{placeholder}
+			style={inputStyle}
+			value={search}
+			{disabled}
+			{tabindex}
+			on:input={updateSearch(e.target.value)}
+			on:focus|preventDefault={activate()}
+			on:blur|preventDefault={deactivate()}
+			on:keyup={handleKeyUp}
+			on:keydown|preventDefault={handleKeyDown}
+			on:keypress|preventDefault|stopPropagation|self={handleKeyPress}
+			class="multiselect__input"
+			aria-controls={"listbox-" + id}
+		/>
+		{#if isSingleLabelVisible}
+			<span class="multiselect__single" on:mousedown|preventDefault={toggle}>
+				<slot name="singleLabel" option="singleValue">
+					{currentOptionLabel}
+				</slot>
+			</span>
+		{/if}
+
+		{#if isPlaceholderVisible}
+			<span
+				class="multiselect__placeholder"
+				on:mousedown|preventDefault={toggle}
+			>
+				<slot name="placeholder">
+					{placeholder}
+				</slot>
+			</span>
+		{/if}
+	</div>
+	{#if isOpen}
+		<div
+			transition:fade
+			on:focus={activate}
+			tabindex="-1"
+			on:mousedown|preventDefault
+			style={` maxHeight: ${optimizedHeight}px`}
+			ref="list"
+		>
+			<ul
+				class="multiselect__content"
+				style={contentStyle}
+				role="listbox"
+				id={"listbox-" + id}
+			>
+				<slot name="beforeList" />
+				{#if multiple && max === internalValue.length}
+					<li>
+						<span class="multiselect__option">
+							<slot name="maxElements"
+								>Maximum of {{ max }} options selected. First remove a selected option
+								to select another.</slot
+							>
+						</span>
+					</li>
+				{/if}
+
+				{#if !max || internalValue.length < max}
+					{#each filteredOptions as option, index}
+						<li
+							class="multiselect__element"
+							id={id + "-" + index}
+							role={!(option && (option.$isLabel || option.$isDisabled))
+								? "option"
+								: null}
+						>
+							{#if !(option && (option.$isLabel || option.$isDisabled))}
+								<span
+									class={optionHighlight(index, option) +
+										" multiselect__option"}
+									on:click|stopPropagation={select(option)}
+									on:mouseenter|self={pointerSet(index)}
+									data-select={option && option.isTag
+										? tagPlaceholder
+										: selectLabelText}
+									data-selected={selectedLabelText}
+									data-deselect={deselectLabelText}
+								>
+									<slot name="option" {option} {search} {index}>
 										<span>{getOptionLabel(option)}</span>
-										<i tabindex="1" on:keypress|preventDefault={tagHandleKeyPress}  on:mousedown|preventDefault={removeElement(option)} class="multiselect__tag-icon"></i>
-									</span>
-								</slot>
-							{/each}
-						</div>
-					{/if}
-{#if internalValue && internalValue.length > limit}
-<slot name="limit">
-	<strong class="multiselect__strong" >{limitText(internalValue.length - limit)}</strong>
-</slot>
-{/if}
-        </slot>
-        <transition name="multiselect__loading">
-          <slot name="loading" transition:fade >
-						{#if loading}
-						 <div class="multiselect__spinner"/>
-						{/if}
-          </slot>
-        </transition>
-        <input
-          ref="search"
-          v-if="searchable"
-          :name="name"
-          :id="id"
-          type="text"
-          autocomplete="off"
-          spellcheck="false"
-          :placeholder="placeholder"
-          :style="inputStyle"
-          :value="search"
-          :disabled="disabled"
-          :tabindex="tabindex"
-          @input="updateSearch($event.target.value)"
-          @focus.prevent="activate()"
-          @blur.prevent="deactivate()"
-          @keyup.esc="deactivate()"
-          @keydown.down.prevent="pointerForward()"
-          @keydown.up.prevent="pointerBackward()"
-          @keypress.enter.prevent.stop.self="addPointerElement($event)"
-          @keydown.delete.stop="removeLastElement()"
-          class="multiselect__input"
-          :aria-controls="'listbox-'+id"
-        />
-        <span
-          v-if="isSingleLabelVisible"
-          class="multiselect__single"
-          @mousedown.prevent="toggle"
-        >
-          <slot name="singleLabel" :option="singleValue">
-            <template>{{ currentOptionLabel }}</template>
-          </slot>
-        </span>
-        <span
-          v-if="isPlaceholderVisible"
-          class="multiselect__placeholder"
-          @mousedown.prevent="toggle"
-        >
-          <slot name="placeholder">
-            {{ placeholder }}
-          </slot>
-        </span>
-      </div>
-      <transition name="multiselect">
-        <div
-          class="multiselect__content-wrapper"
-          v-show="isOpen"
-          @focus="activate"
-          tabindex="-1"
-          @mousedown.prevent
-          :style="{ maxHeight: optimizedHeight + 'px' }"
-          ref="list"
-        >
-          <ul class="multiselect__content" :style="contentStyle" role="listbox" :id="'listbox-'+id">
-            <slot name="beforeList"></slot>
-            <li v-if="multiple && max === internalValue.length">
-              <span class="multiselect__option">
-                <slot name="maxElements">Maximum of {{ max }} options selected. First remove a selected option to select another.</slot>
-              </span>
-            </li>
-            <template v-if="!max || internalValue.length < max">
-              <li class="multiselect__element"
-                v-for="(option, index) of filteredOptions"
-                :key="index"
-                v-bind:id="id + '-' + index"
-                v-bind:role="!(option && (option.$isLabel || option.$isDisabled)) ? 'option' : null">
-                <span
-                  v-if="!(option && (option.$isLabel || option.$isDisabled))"
-                  :class="optionHighlight(index, option)"
-                  @click.stop="select(option)"
-                  @mouseenter.self="pointerSet(index)"
-                  :data-select="option && option.isTag ? tagPlaceholder : selectLabelText"
-                  :data-selected="selectedLabelText"
-                  :data-deselect="deselectLabelText"
-                  class="multiselect__option">
-                    <slot name="option" :option="option" :search="search" :index="index">
-                      <span>{{ getOptionLabel(option) }}</span>
-                    </slot>
-                </span>
-                <span
-                  v-if="option && (option.$isLabel || option.$isDisabled)"
-                  :data-select="groupSelect && selectGroupLabelText"
-                  :data-deselect="groupSelect && deselectGroupLabelText"
-                  :class="groupHighlight(index, option)"
-                  @mouseenter.self="groupSelect && pointerSet(index)"
-                  @mousedown.prevent="selectGroup(option)"
-                  class="multiselect__option">
-                    <slot name="option" :option="option" :search="search" :index="index">
-                      <span>{{ getOptionLabel(option) }}</span>
-                    </slot>
-                </span>
-              </li>
-            </template>
-            <li v-show="showNoResults && (filteredOptions.length === 0 && search && !loading)">
-              <span class="multiselect__option">
-                <slot name="noResult" :search="search">No elements found. Consider changing the search query.</slot>
-              </span>
-            </li>
-            <li v-show="showNoOptions && (options.length === 0 && !search && !loading)">
-              <span class="multiselect__option">
-                <slot name="noOptions">List is empty.</slot>
-              </span>
-            </li>
-            <slot name="afterList"></slot>
-          </ul>
-        </div>
-      </transition>
-  </div>
+									</slot>
+								</span>
+							{/if}
+
+							{#if option && (option.$isLabel || option.$isDisabled)}
+								<span
+									data-select={groupSelect && selectGroupLabelText}
+									data-deselect={groupSelect && deselectGroupLabelText}
+									class={groupHighlight(index, option) + " multiselect__option"}
+									on:mouseenter|self={groupSelect && pointerSet(index)}
+									on:mousedown|preventDefault={selectGroup(option)}
+								>
+									<slot name="option" {option} {search} {index}>
+										<span>{getOptionLabel(option)}</span>
+									</slot>
+								</span>
+							{/if}
+						</li>
+					{/each}
+				{/if}
+				{#if showNoResults && filteredOptions.length === 0 && search && !loading}
+					<li>
+						<span class="multiselect__option">
+							<slot name="noResult" {search}
+								>No elements found. Consider changing the search query.</slot
+							>
+						</span>
+					</li>
+				{/if}
+
+				{#if showNoOptions && options.length === 0 && !search && !loading}
+					<li>
+						<span class="multiselect__option">
+							<slot name="noOptions">List is empty.</slot>
+						</span>
+					</li>
+				{/if}
+
+				<slot name="afterList" />
+			</ul>
+		</div>
+
+		<!-- content here -->
+	{/if}
+</div>
 
 <style>
 	fieldset[disabled] .multiselect {
@@ -813,4 +847,4 @@ import {fade } from 'svelte/transition';
 			transform: rotate(2turn);
 		}
 	}
-	</style>
+</style>
