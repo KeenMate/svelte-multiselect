@@ -1,7 +1,7 @@
 
 <script>
-	import Component from "../src/Component.svelte"
+	import Multiselect from "../src/Multiselect.svelte"
 </script>
 
-<Component/>
+<Multiselect/>
 

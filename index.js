@@ -1,2 +1,2 @@
 
-export {default as Component} from "./src/Component.svelte"
+export {default as Mutliselect} from "./src/Multiselect.svelte"
