@@ -2,6 +2,8 @@
 	import { fade } from "svelte/transition";
 	import { onMount, createEventDispatcher } from "svelte";
 	let dispatch = createEventDispatcher();
+	//TODO find out what html element is refered by $el
+	let el, tagsBind, searchBind, listBind;
 
 	//#region multiselectMixin.js helper functions
 	function isEmpty(opt) {
@@ -168,7 +170,7 @@
 	export let allowEmpty = true;
 
 	/**
-	 * Reset this.internalValue, this.search after this.internalValue changes.
+	 * Reset internalValue, search after internalValue changes.
 	 * Useful if want to create a stateless dropdown.
 	 * @default false
 	 * @type {Boolean}
@@ -560,6 +562,340 @@
 
 	//#endregion
 
+	//#region multiselectMixin.js methods
+	/**
+	 * Returns the internalValue in a way it can be emited to the parent
+	 * @returns {Object||Array||String||Integer}
+	 */
+	function getValue() {
+		return multiple
+			? internalValue
+			: internalValue.length === 0
+			? null
+			: internalValue[0];
+	}
+
+	/**
+	 * Filters and then flattens the options list
+	 * @param  {Array}
+	 * @returns {Array} returns a filtered and flat options list
+	 */
+	function filterAndFlat(options, search, label) {
+		return flow(
+			filterGroups(search, label, groupValues, groupLabel, customLabel),
+			flattenOptions(groupValues, groupLabel)
+		)(options);
+	}
+
+	/**
+	 * Flattens and then strips the group labels from the options list
+	 * @param  {Array}
+	 * @returns {Array} returns a flat options list without group labels
+	 */
+	function flatAndStrip(options) {
+		return flow(flattenOptions(groupValues, groupLabel), stripGroups)(options);
+	}
+
+	/**
+	 * Updates the search value
+	 * @param  {String}
+	 */
+	function updateSearch(query) {
+		search = query;
+	}
+
+	/**
+	 * Finds out if the given query is already present
+	 * in the available options
+	 * @param  {String}
+	 * @returns {Boolean} returns true if element is available
+	 */
+	function isExistingOption(query) {
+		return !options ? false : optionKeys.indexOf(query) > -1;
+	}
+
+	/**
+	 * Finds out if the given element is already present
+	 * in the result value
+	 * @param  {Object||String||Integer} option passed element to check
+	 * @returns {Boolean} returns true if element is selected
+	 */
+	function isSelected(option) {
+		const opt = trackBy ? option[trackBy] : option;
+		return valueKeys.indexOf(opt) > -1;
+	}
+
+	/**
+	 * Finds out if the given option is disabled
+	 * @param  {Object||String||Integer} option passed element to check
+	 * @returns {Boolean} returns true if element is disabled
+	 */
+	function isOptionDisabled(option) {
+		return !!option.$isDisabled;
+	}
+	/**
+	 * Returns empty string when options is null/undefined
+	 * Returns tag query if option is tag.
+	 * Returns the customLabel() results and casts it to string.
+	 *
+	 * @param  {Object||String||Integer} Passed option
+	 * @returns {Object||String}
+	 */
+	function getOptionLabel(option) {
+		if (isEmpty(option)) return "";
+		/* istanbul ignore else */
+		if (option.isTag) return option.label;
+		/* istanbul ignore else */
+		if (option.$isLabel) return option.$groupLabel;
+
+		let label = customLabel(option, label);
+		/* istanbul ignore else */
+		if (isEmpty(label)) return "";
+		return label;
+	}
+
+	/**
+	 * Add the given option to the list of selected options
+	 * or sets the option as the selected option.
+	 * If option is already selected -> remove it from the results.
+	 *
+	 * @param  {Object||String||Integer} option to select/deselect
+	 * @param  {Boolean} block removing
+	 */
+	function select(option, key) {
+		/* istanbul ignore else */
+		if (option.$isLabel && groupSelect) {
+			selectGroup(option);
+			return;
+		}
+		if (
+			blockKeys.indexOf(key) !== -1 ||
+			disabled ||
+			option.$isDisabled ||
+			option.$isLabel
+		)
+			return;
+		/* istanbul ignore else */
+		if (max && multiple && internalValue.length === max) return;
+		/* istanbul ignore else */
+		if (key === "Tab" && !pointerDirty) return;
+		if (option.isTag) {
+			dispatch("tag", option.label, id);
+			search = "";
+			if (closeOnSelect && !multiple) deactivate();
+		} else {
+			const isSelected = isSelected(option);
+
+			if (isSelected) {
+				if (key !== "Tab") removeElement(option);
+				return;
+			}
+
+			dispatch("select", option, id);
+
+			if (multiple) {
+				dispatch("input", internalValue.concat([option]), id);
+			} else {
+				dispatch("input", option, id);
+			}
+
+			/* istanbul ignore else */
+			if (clearOnSelect) search = "";
+		}
+		/* istanbul ignore else */
+		if (closeOnSelect) deactivate();
+	}
+
+	/**
+	 * Add the given group options to the list of selected options
+	 * If all group optiona are already selected -> remove it from the results.
+	 *
+	 * @param  {Object||String||Integer} group to select/deselect
+	 */
+	function selectGroup(selectedGroup) {
+		const group = options.find((option) => {
+			return option[groupLabel] === selectedGroup.$groupLabel;
+		});
+
+		if (!group) return;
+
+		if (wholeGroupSelected(group)) {
+			dispatch("remove", group[groupValues], id);
+
+			const newValue = internalValue.filter(
+				(option) => group[groupValues].indexOf(option) === -1
+			);
+
+			dispatch("input", newValue, id);
+		} else {
+			const optionsToAdd = group[groupValues].filter(
+				(option) => !(isOptionDisabled(option) || isSelected(option))
+			);
+
+			dispatch("select", optionsToAdd, id);
+			dispatch("input", internalValue.concat(optionsToAdd), id);
+		}
+
+		if (closeOnSelect) deactivate();
+	}
+
+	/**
+	 * Helper to identify if all values in a group are selected
+	 *
+	 * @param {Object} group to validated selected values against
+	 */
+	function wholeGroupSelected(group) {
+		return group[groupValues].every(
+			(option) => isSelected(option) || isOptionDisabled(option)
+		);
+	}
+	/**
+	 * Helper to identify if all values in a group are disabled
+	 *
+	 * @param {Object} group to check for disabled values
+	 */
+	function wholeGroupDisabled(group) {
+		return group[groupValues].every(isOptionDisabled);
+	}
+	/**
+	 * Removes the given option from the selected options.
+	 * Additionally checks allowEmpty prop if option can be removed when
+	 * it is the last selected option.
+	 *
+	 * @param  {type} option description
+	 * @returns {type}        description
+	 */
+	function removeElement(option, shouldClose = true) {
+		/* istanbul ignore else */
+		if (disabled) return;
+		/* istanbul ignore else */
+		if (option.$isDisabled) return;
+		/* istanbul ignore else */
+		if (!allowEmpty && internalValue.length <= 1) {
+			deactivate();
+			return;
+		}
+
+		const index =
+			typeof option === "object"
+				? valueKeys.indexOf(option[trackBy])
+				: valueKeys.indexOf(option);
+
+		dispatch("remove", option, id);
+		if (multiple) {
+			const newValue = internalValue
+				.slice(0, index)
+				.concat(internalValue.slice(index + 1));
+			dispatch("input", newValue, id);
+		} else {
+			dispatch("input", null, id);
+		}
+
+		/* istanbul ignore else */
+		if (closeOnSelect && shouldClose) deactivate();
+	}
+
+	/**
+	 * Calls removeElement() with the last element
+	 * from internalValue (selected element Array)
+	 *
+	 * @fires this#removeElement
+	 */
+	function removeLastElement() {
+		/* istanbul ignore else */
+		if (blockKeys.indexOf("Delete") !== -1) return;
+		/* istanbul ignore else */
+		if (
+			search.length === 0 &&
+			Array.isArray(internalValue) &&
+			internalValue.length
+		) {
+			removeElement(internalValue[internalValue.length - 1], false);
+		}
+	}
+
+	/**
+	 * Opens the multiselect’s dropdown.
+	 * Sets isOpen to TRUE
+	 */
+	function activate() {
+		/* istanbul ignore else */
+		if (isOpen || disabled) return;
+
+		adjustPosition();
+		/* istanbul ignore else  */
+		if (groupValues && pointer === 0 && filteredOptions.length) {
+			pointer = 1;
+		}
+
+		isOpen = true;
+		/* istanbul ignore else  */
+		if (searchable) {
+			if (!preserveSearch) search = "";
+			setTimeout(() => searchBind && searchBind.focus());
+		} else {
+			el.focus();
+		}
+		dispatch("open", id);
+	}
+
+	/**
+	 * Closes the multiselect’s dropdown.
+	 * Sets isOpen to FALSE
+	 */
+	function deactivate() {
+		/* istanbul ignore else */
+		if (!isOpen) return;
+
+		isOpen = false;
+		/* istanbul ignore else  */
+		if (searchable) {
+			searchBind && searchBind.blur();
+		} else {
+			el.blur();
+		}
+		if (!preserveSearch) search = "";
+		dispatch("close", getValue(), id);
+	}
+
+	/**
+	 * Call activate() or deactivate()
+	 * depending on isOpen value.
+	 *
+	 * @fires this#activate || this#deactivate
+	 * @property {Boolean} isOpen indicates if dropdown is open
+	 */
+	function toggle() {
+		isOpen ? deactivate() : activate();
+	}
+
+	/**
+	 * Updates the hasEnoughSpace variable used for
+	 * detecting where to expand the dropdown
+	 */
+	function adjustPosition() {
+		if (typeof window === "undefined") return;
+
+		const spaceAbove = el.getBoundingClientRect().top;
+		const spaceBelow = window.innerHeight - el.getBoundingClientRect().bottom;
+		const hasEnoughSpaceBelow = spaceBelow > maxHeight;
+
+		if (
+			hasEnoughSpaceBelow ||
+			spaceBelow > spaceAbove ||
+			openDirection === "below" ||
+			openDirection === "bottom"
+		) {
+			preferredOpenDirection = "below";
+			optimizedHeight = Math.min(spaceBelow - 40, maxHeight);
+		} else {
+			preferredOpenDirection = "above";
+			optimizedHeight = Math.min(spaceAbove - 40, maxHeight);
+		}
+	}
+
+	//#endregion
+
 	//#region multiselectMixin.js mounted
 	onMount(() => {
 		/* istanbul ignore else */
@@ -576,6 +912,7 @@
 </script>
 
 <div
+	bind:this={el}
 	tabindex={searchable ? -1 : tabindex}
 	class:multiselect--active={isOpen}
 	class:multiselect--disabled={disabled}
@@ -596,7 +933,7 @@
 		/>
 	</slot>
 	<slot name="clear" {search} />
-	<div ref="tags" class="multiselect__tags">
+	<div bind:this={tagsBind} class="multiselect__tags">
 		<slot
 			name="selection"
 			{search}
@@ -637,7 +974,7 @@
 			</slot>
 		</div>
 		<input
-			ref="search"
+			bind:this={searchBind}
 			v-if="searchable"
 			{name}
 			{id}
@@ -649,7 +986,7 @@
 			value={search}
 			{disabled}
 			{tabindex}
-			on:input={updateSearch(e.target.value)}
+			on:input={(e) => updateSearch(e.target.value)}
 			on:focus|preventDefault={activate()}
 			on:blur|preventDefault={deactivate()}
 			on:keyup={handleKeyUp}
@@ -684,7 +1021,7 @@
 			tabindex="-1"
 			on:mousedown|preventDefault
 			style={` maxHeight: ${optimizedHeight}px`}
-			ref="list"
+			bind:this={listBind}
 		>
 			<ul
 				class="multiselect__content"
