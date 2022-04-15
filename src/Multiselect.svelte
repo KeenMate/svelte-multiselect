@@ -4,6 +4,8 @@
 	import multiselectMixin from "./multiselectMixin";
 	import pointerMixin from "./pointerMixin";
 
+	//#region Multiselect.vue props
+
 	/**
 	 * name attribute to match optional label element
 	 * @default ''
@@ -95,6 +97,10 @@
 
 	export let tabindex = 0;
 
+	//#endregion
+
+	//#region Multiselect.vue Computed
+
 	let isSingleLabelVisible;
 	$: isSingleLabelVisible =
 		(singleValue || singleValue === 0) &&
@@ -179,6 +185,8 @@
 	function tagHandleKeyPress(e) {
 		if (e.code == "Enter") removeElement(option);
 	}
+
+	//#endregion
 </script>
 
 <div
