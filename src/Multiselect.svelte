@@ -5,6 +5,10 @@
 	//TODO find out what html element is refered by $el
 	let el, tagsBind, searchBind, listBind;
 
+	$: console.log(el);
+	$: console.log(filterOptions);
+	export let hasSingleSelectedSlot = null;
+
 	//#region multiselectMixin.js helper functions
 	function isEmpty(opt) {
 		if (opt === 0) return false;
@@ -80,21 +84,6 @@
 		(...fns) =>
 		(x) =>
 			fns.reduce((v, f) => f(v), x);
-	//#endregion
-
-	//#region multiselectMixin.js data
-
-	let search = "";
-	let isOpen = false;
-	let preferredOpenDirection = "below";
-	let optimizedHeight = maxHeight;
-	//#endregion
-
-	//#region pointerMixin.js data
-
-	let pointer = 0;
-	let pointerDirty = false;
-
 	//#endregion
 
 	//#region multiselectMixin.js props
@@ -196,8 +185,10 @@
 	 * @default false
 	 * @type {Function}
 	 */
-	export let customLabel;
-	$: customLabel = isEmpty(option) ? "" : label ? option[label] : option;
+	export let customLabel = (option, label) => {
+        if (isEmpty(option)) return ''
+        return label ? option[label] : option
+      }
 
 	/**
 	 * Disable / Enable tagging
@@ -282,14 +273,14 @@
 	 * @default false
 	 * @type {Boolean}
 	 */
-	preserveSearch = false;
+	export let preserveSearch = false;
 
 	/**
 	 * Select 1st options if value is empty
 	 * @default false
 	 * @type {Boolean}
 	 */
-	preselectFirst = false;
+	export let preselectFirst = false;
 
 	//#endregion
 
@@ -401,6 +392,21 @@
 
 	//#endregion
 
+	//#region multiselectMixin.js data
+
+	let search = "";
+	let isOpen = false;
+	let preferredOpenDirection = "below";
+	let optimizedHeight = maxHeight;
+	//#endregion
+
+	//#region pointerMixin.js data
+
+	let pointer = 0;
+	let pointerDirty = false;
+
+	//#endregion
+
 	//#region multiselectMixin.js computed
 	let internalValue;
 
@@ -408,24 +414,24 @@
 		value || value === 0 ? (Array.isArray(value) ? value : [value]) : [];
 
 	let filteredOptions;
-	$: filteredOptions = () => {
-		const search = search || "";
-		const normalizedSearch = search.toLowerCase().trim();
+	$: filteredOptions = (() => {
+		const _search = search || "";
+		const normalizedSearch = _search.toLowerCase().trim();
 
-		let options = options.concat();
+		let _options = options.concat();
 
 		/* istanbul ignore else */
 		if (internalSearch) {
-			options = groupValues
-				? filterAndFlat(options, normalizedSearch, label)
-				: filterOptions(options, normalizedSearch, label, customLabel);
+			_options = groupValues
+				? filterAndFlat(_options, normalizedSearch, label)
+				: filterOptions(_options, normalizedSearch, label, customLabel);
 		} else {
-			options = groupValues
-				? flattenOptions(groupValues, groupLabel)(options)
-				: options;
+			_options = groupValues
+				? flattenOptions(groupValues, groupLabel)(_options)
+				: _options;
 		}
 
-		options = hideSelected ? options.filter(not(isSelected)) : options;
+		_options = hideSelected ? _options.filter(not(isSelected)) : _options;
 
 		/* istanbul ignore else */
 		if (
@@ -434,44 +440,43 @@
 			!isExistingOption(normalizedSearch)
 		) {
 			if (tagPosition === "bottom") {
-				options.push({ isTag: true, label: search });
+				_options.push({ isTag: true, label: search });
 			} else {
-				options.unshift({ isTag: true, label: search });
+				_options.unshift({ isTag: true, label: search });
 			}
 		}
+		console.log(_options);
 
-		return options.slice(0, optionsLimit);
-	};
+		return _options.slice(0, optionsLimit);
+	})();
 
 	let valueKeys;
-	$: valueKeys = () => {
+	$: valueKeys = (() => {
 		if (trackBy) {
 			return internalValue.map((element) => element[trackBy]);
 		} else {
 			return internalValue;
 		}
-	};
+	})();
 
 	let optionKeys;
-	$: optionKeys = () => {
-		const options = groupValues ? flatAndStrip(options) : options;
-		return options.map((element) =>
-			customLabel(element, label).toString().toLowerCase()
+	$: optionKeys = (() => {
+		const _options = groupValues ? flatAndStrip(options) : options;
+		return _options.map((element) =>
+			customLabel(element, label)?.toString().toLowerCase()
 		);
-	};
+	})();
 
 	let currentOptionLabel;
-	$: currentOptionLabel = () => {
-		return multiple
-			? searchable
-				? ""
-				: placeholder
-			: internalValue.length
-			? getOptionLabel(internalValue[0])
-			: searchable
+	$: currentOptionLabel = multiple
+		? searchable
 			? ""
-			: placeholder;
-	};
+			: placeholder
+		: internalValue.length
+		? getOptionLabel(internalValue[0])
+		: searchable
+		? ""
+		: placeholder;
 
 	//#endregion
 
@@ -508,9 +513,7 @@
 	$: selectedLabelText = showLabels ? selectedLabel : "";
 
 	let inputStyle;
-	$: inputStyle = getInputStyle(searchable, multiple, value, isOpen);
-
-	function getInputStyle(searchable, multiple, value, isOpen) {
+	$: inputStyle = (()=> {
 		if (searchable || (multiple && value && value.length)) {
 			// Hide input by setting the width to 0 allowing it to receive focus
 			return isOpen
@@ -518,7 +521,7 @@
 				: { width: "0", position: "absolute", padding: "0" };
 		}
 		return "";
-	}
+	})()
 
 	let contentStyle;
 	$: contentStyle = options.length
@@ -526,8 +529,7 @@
 		: { display: "block" };
 
 	let isAbove;
-	$: isAbove = getIsAbove(openDirection, preferredOpenDirection);
-	function getIsAbove(openDirection, preferredOpenDirection) {
+	$: isAbove = (()=> {
 		if (openDirection === "above" || openDirection === "top") {
 			return true;
 		} else if (openDirection === "below" || openDirection === "bottom") {
@@ -535,7 +537,7 @@
 		} else {
 			return preferredOpenDirection === "above";
 		}
-	}
+	})()
 
 	let showSearchInput;
 	$: showSearchInput =
@@ -567,52 +569,52 @@
 	//#region pointerMixin.js computed
 
 	let pointerPosition;
-	$: pointerPosition = () => {
+	$: pointerPosition = (() => {
 		return pointer * optionHeight;
-	};
+	})();
 
 	let visibleElements;
-	$: visibleElements = () => {
+	$: visibleElements = (() => {
 		return optimizedHeight / optionHeight;
-	};
+	})();
 	//#endregion
 
 	//#region  multiselectMixin.js watch
 
 	$: internalValue,
-		() => {
+		(() => {
 			/* istanbul ignore else */
 			if (resetAfter && internalValue.length) {
 				search = "";
 				dispatch("input", multiple ? [] : null);
 			}
-		};
+		})();
 
 	$: search,
-		() => {
+		(() => {
 			dispatch("search-change", search, id);
-		};
+		});
 
 	//#endregion
 
 	//#region pointerMixin.js watch
 
 	$: filteredOptions,
-		() => {
+		(() => {
 			pointerAdjust();
-		};
+		})();
 	$: isOpen,
-		() => {
+		(() => {
 			pointerDirty = false;
-		};
+		})();
 	$: pointer,
-		() => {
+		(() => {
 			searchBind &&
 				searchBind.setAttribute(
 					"aria-activedescendant",
 					id + "-" + pointer.toString()
 				);
-		};
+		})();
 	//#endregion
 
 	//#region multiselectMixin.js methods
@@ -701,10 +703,10 @@
 		/* istanbul ignore else */
 		if (option.$isLabel) return option.$groupLabel;
 
-		let label = customLabel(option, label);
+		let _label = customLabel(option, label);
 		/* istanbul ignore else */
-		if (isEmpty(label)) return "";
-		return label;
+		if (isEmpty(_label)) return "";
+		return _label;
 	}
 
 	/**
@@ -885,9 +887,12 @@
 		/* istanbul ignore else  */
 		if (searchable) {
 			if (!preserveSearch) search = "";
-			setTimeout(() => searchBind && searchBind.focus());
+			if (searchBind) {
+				console.log(searchBind);
+				//setTimeout(() => searchBind?.focus());
+			}
 		} else {
-			el.focus();
+			el?.focus();
 		}
 		dispatch("open", id);
 	}
@@ -929,8 +934,8 @@
 	function adjustPosition() {
 		if (typeof window === "undefined") return;
 
-		const spaceAbove = el.getBoundingClientRect().top;
-		const spaceBelow = window.innerHeight - el.getBoundingClientRect().bottom;
+		const spaceAbove = el?.getBoundingClientRect().top;
+		const spaceBelow = window.innerHeight - el?.getBoundingClientRect().bottom;
 		const hasEnoughSpaceBelow = spaceBelow > maxHeight;
 
 		if (
@@ -1146,28 +1151,30 @@
 				{/if}
 			</slot>
 		</div>
-		<input
-			bind:this={searchBind}
-			v-if="searchable"
-			{name}
-			{id}
-			type="text"
-			autocomplete="off"
-			spellcheck="false"
-			{placeholder}
-			style={inputStyle}
-			value={search}
-			{disabled}
-			{tabindex}
-			on:input={(e) => updateSearch(e.target.value)}
-			on:focus|preventDefault={activate()}
-			on:blur|preventDefault={deactivate()}
-			on:keyup={handleKeyUp}
-			on:keydown|preventDefault={handleKeyDown}
-			on:keypress|preventDefault|stopPropagation|self={handleKeyPress}
-			class="multiselect__input"
-			aria-controls={"listbox-" + id}
-		/>
+		{#if searchable}
+			<input
+				bind:this={searchBind}
+				{name}
+				{id}
+				type="text"
+				autocomplete="off"
+				spellcheck="false"
+				{placeholder}
+				style={inputStyle}
+				value={search}
+				{disabled}
+				{tabindex}
+				on:input={(e) => updateSearch(e.target.value)}
+				on:focus|preventDefault={activate()}
+				on:blur|preventDefault={deactivate()}
+				on:keyup={handleKeyUp}
+				on:keydown|preventDefault={handleKeyDown}
+				on:keypress|preventDefault|stopPropagation|self={handleKeyPress}
+				class="multiselect__input"
+				aria-controls={"listbox-" + id}
+			/>
+			<!-- content here -->
+		{/if}
 		{#if isSingleLabelVisible}
 			<span class="multiselect__single" on:mousedown|preventDefault={toggle}>
 				<slot name="singleLabel" option="singleValue">
@@ -1187,6 +1194,7 @@
 			</span>
 		{/if}
 	</div>
+
 	{#if isOpen}
 		<div
 			transition:fade
