@@ -90,6 +90,13 @@
 	let optimizedHeight = maxHeight;
 	//#endregion
 
+	//#region pointerMixin.js data
+
+	let pointer = 0;
+	let pointerDirty = false;
+
+	//#endregion
+
 	//#region multiselectMixin.js props
 
 	/**
@@ -381,6 +388,19 @@
 
 	//#endregion
 
+	//#region pointerMixin.js props
+
+	/**
+	 * Enable/disable highlighting of the pointed value.
+	 * @type {Boolean}
+	 * @default true
+	 */
+	export let showPointer = true;
+
+	export let optionHeight = 40;
+
+	//#endregion
+
 	//#region multiselectMixin.js computed
 	let internalValue;
 
@@ -544,6 +564,19 @@
 
 	//#endregion
 
+	//#region pointerMixin.js computed
+
+	let pointerPosition;
+	$: pointerPosition = () => {
+		return pointer * optionHeight;
+	};
+
+	let visibleElements;
+	$: visibleElements = () => {
+		return optimizedHeight / optionHeight;
+	};
+	//#endregion
+
 	//#region  multiselectMixin.js watch
 
 	$: internalValue,
@@ -560,6 +593,26 @@
 			dispatch("search-change", search, id);
 		};
 
+	//#endregion
+
+	//#region pointerMixin.js watch
+
+	$: filteredOptions,
+		() => {
+			pointerAdjust();
+		};
+	$: isOpen,
+		() => {
+			pointerDirty = false;
+		};
+	$: pointer,
+		() => {
+			searchBind &&
+				searchBind.setAttribute(
+					"aria-activedescendant",
+					id + "-" + pointer.toString()
+				);
+		};
 	//#endregion
 
 	//#region multiselectMixin.js methods
@@ -894,6 +947,126 @@
 		}
 	}
 
+	//#endregion
+
+	//#region pointerMixin.js methods
+
+	function optionHighlight(index, option) {
+		return {
+			"multiselect__option--highlight": index === pointer && showPointer,
+			"multiselect__option--selected": isSelected(option),
+		};
+	}
+
+	function groupHighlight(index, selectedGroup) {
+		if (!groupSelect) {
+			return [
+				"multiselect__option--disabled",
+				{ "multiselect__option--group": selectedGroup.$isLabel },
+			];
+		}
+
+		const group = options.find((option) => {
+			return option[groupLabel] === selectedGroup.$groupLabel;
+		});
+
+		return group && !wholeGroupDisabled(group)
+			? [
+					"multiselect__option--group",
+					{
+						"multiselect__option--highlight": index === pointer && showPointer,
+					},
+					{ "multiselect__option--group-selected": wholeGroupSelected(group) },
+			  ]
+			: "multiselect__option--disabled";
+	}
+
+	function addPointerElement({ key } = "Enter") {
+		/* istanbul ignore else */
+		if (filteredOptions.length > 0) {
+			select(filteredOptions[pointer], key);
+		}
+		pointerReset();
+	}
+
+	function pointerForward() {
+		/* istanbul ignore else */
+		if (pointer < filteredOptions.length - 1) {
+			pointer++;
+			/* istanbul ignore next */
+			if (
+				listBind.scrollTop <=
+				pointerPosition - (visibleElements - 1) * optionHeight
+			) {
+				listBind.scrollTop =
+					pointerPosition - (visibleElements - 1) * optionHeight;
+			}
+			/* istanbul ignore else */
+			if (
+				filteredOptions[pointer] &&
+				filteredOptions[pointer].$isLabel &&
+				!groupSelect
+			)
+				pointerForward();
+		}
+		pointerDirty = true;
+	}
+
+	function pointerBackward() {
+		if (pointer > 0) {
+			pointer--;
+			/* istanbul ignore else */
+			if (listBind.scrollTop >= pointerPosition) {
+				listBind.scrollTop = pointerPosition;
+			}
+			/* istanbul ignore else */
+			if (
+				filteredOptions[pointer] &&
+				filteredOptions[pointer].$isLabel &&
+				!groupSelect
+			)
+				pointerBackward();
+		} else {
+			/* istanbul ignore else */
+			if (
+				filteredOptions[pointer] &&
+				filteredOptions[0].$isLabel &&
+				!groupSelect
+			)
+				pointerForward();
+		}
+		pointerDirty = true;
+	}
+
+	function pointerReset() {
+		/* istanbul ignore else */
+		if (!closeOnSelect) return;
+		pointer = 0;
+		/* istanbul ignore else */
+		if (listBind) {
+			listBind.scrollTop = 0;
+		}
+	}
+
+	function pointerAdjust() {
+		/* istanbul ignore else */
+		if (pointer >= filteredOptions.length - 1) {
+			pointer = filteredOptions.length ? filteredOptions.length - 1 : 0;
+		}
+
+		if (
+			filteredOptions.length > 0 &&
+			filteredOptions[pointer].$isLabel &&
+			!groupSelect
+		) {
+			pointerForward();
+		}
+	}
+
+	function pointerSet(index) {
+		pointer = index;
+		pointerDirty = true;
+	}
 	//#endregion
 
 	//#region multiselectMixin.js mounted
