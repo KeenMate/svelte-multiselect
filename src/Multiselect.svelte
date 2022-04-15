@@ -163,21 +163,17 @@
 			: true);
 
 	function handleKeyDown(e) {
-		//TODO implement
-		//if down -> pointerForward()
-		//if up -> pointerBackward()
-		//if delete -> removeLastElement()
-		//
+		if (e.code == "ArrowDown") pointerForward();
+		if (e.code == "ArrowUp") pointerBackward();
+		if (e.code == "Delete") removeLastElement();
 	}
 
 	function handleKeyUp(e) {
-		//TODO implement
-		//if esc deactivate()
+		if (e.code == "Escape") deactivate();
 	}
 
 	function handleKeyPress(e) {
 		if (e.code == "Tab") addPointerElement(e);
-		// if tab => addPointerElement($event)
 	}
 
 	function tagHandleKeyPress(e) {
