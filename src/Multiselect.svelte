@@ -1,8 +1,288 @@
 <script>
 	import { fade } from "svelte/transition";
+	import { onMount, createEventDispatcher } from "svelte";
+	let dispatch = createEventDispatcher();
 
-	import multiselectMixin from "./multiselectMixin";
-	import pointerMixin from "./pointerMixin";
+	//#region multiselectMixin.js helper functions
+	function isEmpty(opt) {
+		if (opt === 0) return false;
+		if (Array.isArray(opt) && opt.length === 0) return true;
+		return !opt;
+	}
+
+	function not(fun) {
+		return (...params) => !fun(...params);
+	}
+
+	function includes(str, query) {
+		/* istanbul ignore else */
+		if (str === undefined) str = "undefined";
+		if (str === null) str = "null";
+		if (str === false) str = "false";
+		const text = str.toString().toLowerCase();
+		return text.indexOf(query.trim()) !== -1;
+	}
+
+	function filterOptions(options, search, label, customLabel) {
+		return options.filter((option) =>
+			includes(customLabel(option, label), search)
+		);
+	}
+
+	function stripGroups(options) {
+		return options.filter((option) => !option.$isLabel);
+	}
+
+	function flattenOptions(values, label) {
+		return (options) =>
+			options.reduce((prev, curr) => {
+				/* istanbul ignore else */
+				if (curr[values] && curr[values].length) {
+					prev.push({
+						$groupLabel: curr[label],
+						$isLabel: true,
+					});
+					return prev.concat(curr[values]);
+				}
+				return prev;
+			}, []);
+	}
+
+	function filterGroups(search, label, values, groupLabel, customLabel) {
+		return (groups) =>
+			groups.map((group) => {
+				/* istanbul ignore else */
+				if (!group[values]) {
+					console.warn(
+						`Options passed to vue-multiselect do not contain groups, despite the config.`
+					);
+					return [];
+				}
+				const groupOptions = filterOptions(
+					group[values],
+					search,
+					label,
+					customLabel
+				);
+
+				return groupOptions.length
+					? {
+							[groupLabel]: group[groupLabel],
+							[values]: groupOptions,
+					  }
+					: [];
+			});
+	}
+
+	const flow =
+		(...fns) =>
+		(x) =>
+			fns.reduce((v, f) => f(v), x);
+	//#endregion
+
+	//#region multiselectMixin.js data
+
+	let search = "";
+	let isOpen = false;
+	let preferredOpenDirection = "below";
+	let optimizedHeight = maxHeight;
+	//#endregion
+
+	//#region multiselectMixin.js props
+
+	/**
+	 * Decide whether to filter the results based on search query.
+	 * Useful for async filtering, where we search through more complex data.
+	 * @type {Boolean}
+	 */
+	export let internalSearch = true;
+
+	/**
+	 * Array of available options: Objects, Strings or Integers.
+	 * If array of objects, visible label will default to option.label.
+	 * If `labal` prop is passed, label will equal option['label']
+	 * @type {Array}
+	 */
+	export let options = true;
+
+	/**
+	 * Equivalent to the `multiple` attribute on a `<select>` input.
+	 * @default false
+	 * @type {Boolean}
+	 */
+	export let multiple = false;
+
+	/**
+	 * Presets the selected options value.
+	 * @type {Object||Array||String||Integer}
+	 */
+	export let value = [];
+
+	/**
+	 * Key to compare objects
+	 * @default 'id'
+	 * @type {String}
+	 */
+	export let trackBy = "id";
+
+	/**
+	 * Label to look for in option Object
+	 * @default 'label'
+	 * @type {String}
+	 */
+	export let label = "label";
+
+	/**
+	 * Enable/disable search in options
+	 * @default true
+	 * @type {Boolean}
+	 */
+	export let searchable = true;
+
+	/**
+	 * Clear the search input after `)
+	 * @default true
+	 * @type {Boolean}
+	 */
+	export let clearOnSelect = true;
+
+	/**
+	 * Hide already selected options
+	 * @default false
+	 * @type {Boolean}
+	 */
+	export let hideSelected = false;
+
+	/**
+	 * Equivalent to the `placeholder` attribute on a `<select>` input.
+	 * @default 'Select option'
+	 * @type {String}
+	 */
+	export let placeholder = "Select option";
+
+	/**
+	 * Allow to remove all selected values
+	 * @default true
+	 * @type {Boolean}
+	 */
+	export let allowEmpty = true;
+
+	/**
+	 * Reset this.internalValue, this.search after this.internalValue changes.
+	 * Useful if want to create a stateless dropdown.
+	 * @default false
+	 * @type {Boolean}
+	 */
+	export let resetAfter = false;
+
+	/**
+	 * Enable/disable closing after selecting an option
+	 * @default true
+	 * @type {Boolean}
+	 */
+	export let closeOnSelect = true;
+
+	/**
+	 * Function to interpolate the custom label
+	 * @default false
+	 * @type {Function}
+	 */
+	export let customLabel;
+	$: customLabel = isEmpty(option) ? "" : label ? option[label] : option;
+
+	/**
+	 * Disable / Enable tagging
+	 * @default false
+	 * @type {Boolean}
+	 */
+	export let taggable = false;
+
+	/**
+	 * String to show when highlighting a potential tag
+	 * @default 'Press enter to create a tag'
+	 * @type {String}
+	 */
+	export let tagPlaceholder = "Press enter to create a tag";
+
+	/**
+	 * By default new tags will appear above the search results.
+	 * Changing to 'bottom' will revert this behaviour
+	 * and will proritize the search results
+	 * @default 'top'
+	 * @type {String}
+	 */
+	export let tagPosition = "top";
+
+	/**
+	 * Number of allowed selected options. No limit if 0.
+	 * @default 0
+	 * @type {Number}
+	 */
+	export let max = 0;
+
+	/**
+	 * Will be passed with all events as second param.
+	 * Useful for identifying events origin.
+	 * @default null
+	 * @type {String|Integer}
+	 */
+	export let id = null;
+
+	/**
+	 * Limits the options displayed in the dropdown
+	 * to the first X options.
+	 * @default 1000
+	 * @type {Integer}
+	 */
+	export let optionsLimit = 1000;
+
+	/**
+	 * Name of the property containing
+	 * the group values
+	 * @default 1000
+	 * @type {String}
+	 */
+	export let groupValues;
+
+	/**
+	 * Name of the property containing
+	 * the group label
+	 * @default 1000
+	 * @type {String}
+	 */
+	export let groupLabel;
+
+	/**
+	 * Allow to select all group values
+	 * by selecting the group label
+	 * @default false
+	 * @type {Boolean}
+	 */
+	export let groupSelect = false;
+
+	/**
+	 * Array of keyboard keys to block
+	 * when selecting
+	 * @default 1000
+	 * @type {String}
+	 */
+	export let blockKeys = [];
+
+	/**
+	 * Prevent from wiping up the search value
+	 * @default false
+	 * @type {Boolean}
+	 */
+	preserveSearch = false;
+
+	/**
+	 * Select 1st options if value is empty
+	 * @default false
+	 * @type {Boolean}
+	 */
+	preselectFirst = false;
+
+	//#endregion
 
 	//#region Multiselect.vue props
 
@@ -99,7 +379,81 @@
 
 	//#endregion
 
-	//#region Multiselect.vue Computed
+	//#region multiselectMixin.js computed
+	let internalValue;
+
+	$: internalValue =
+		value || value === 0 ? (Array.isArray(value) ? value : [value]) : [];
+
+	let filteredOptions;
+	$: filteredOptions = () => {
+		const search = search || "";
+		const normalizedSearch = search.toLowerCase().trim();
+
+		let options = options.concat();
+
+		/* istanbul ignore else */
+		if (internalSearch) {
+			options = groupValues
+				? filterAndFlat(options, normalizedSearch, label)
+				: filterOptions(options, normalizedSearch, label, customLabel);
+		} else {
+			options = groupValues
+				? flattenOptions(groupValues, groupLabel)(options)
+				: options;
+		}
+
+		options = hideSelected ? options.filter(not(isSelected)) : options;
+
+		/* istanbul ignore else */
+		if (
+			taggable &&
+			normalizedSearch.length &&
+			!isExistingOption(normalizedSearch)
+		) {
+			if (tagPosition === "bottom") {
+				options.push({ isTag: true, label: search });
+			} else {
+				options.unshift({ isTag: true, label: search });
+			}
+		}
+
+		return options.slice(0, optionsLimit);
+	};
+
+	let valueKeys;
+	$: valueKeys = () => {
+		if (trackBy) {
+			return internalValue.map((element) => element[trackBy]);
+		} else {
+			return internalValue;
+		}
+	};
+
+	let optionKeys;
+	$: optionKeys = () => {
+		const options = groupValues ? flatAndStrip(options) : options;
+		return options.map((element) =>
+			customLabel(element, label).toString().toLowerCase()
+		);
+	};
+
+	let currentOptionLabel;
+	$: currentOptionLabel = () => {
+		return multiple
+			? searchable
+				? ""
+				: placeholder
+			: internalValue.length
+			? getOptionLabel(internalValue[0])
+			: searchable
+			? ""
+			: placeholder;
+	};
+
+	//#endregion
+
+	//#region Multiselect.vue computed
 
 	let isSingleLabelVisible;
 	$: isSingleLabelVisible =
@@ -186,6 +540,38 @@
 		if (e.code == "Enter") removeElement(option);
 	}
 
+	//#endregion
+
+	//#region  multiselectMixin.js watch
+
+	$: internalValue,
+		() => {
+			/* istanbul ignore else */
+			if (resetAfter && internalValue.length) {
+				search = "";
+				dispatch("input", multiple ? [] : null);
+			}
+		};
+
+	$: search,
+		() => {
+			dispatch("search-change", search, id);
+		};
+
+	//#endregion
+
+	//#region multiselectMixin.js mounted
+	onMount(() => {
+		/* istanbul ignore else */
+		if (!multiple && max) {
+			console.warn(
+				"[Vue-Multiselect warn]: Max prop should not be used when prop Multiple equals false."
+			);
+		}
+		if (preselectFirst && !internalValue.length && options.length) {
+			select(filteredOptions[0]);
+		}
+	});
 	//#endregion
 </script>
 
