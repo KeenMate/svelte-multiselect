@@ -6,12 +6,11 @@
 
 {JSON.stringify(value)}
 
-<input type="text" value="lmao" autofocus />
-
 <Multiselect
 	bind:value
 	showLabels={false}
 	closeOnSelect={false}
+	searchable={false}
 	options={[
 		"Select option",
 		"options",

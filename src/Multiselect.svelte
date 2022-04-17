@@ -7,6 +7,12 @@
 
 	export let hasSingleSelectedSlot = null;
 
+	/** this is fix for vue v-model that automatically updates value when input is emitted	 */
+	function dispatchInput(val, id) {
+		dispatch("input", val, id);
+		value = val;
+	}
+
 	//#region multiselectMixin.js helper functions
 	function isEmpty(opt) {
 		if (opt === 0) return false;
@@ -119,7 +125,7 @@
 	 * @default 'id'
 	 * @type {String}
 	 */
-	export let trackBy = "id";
+	export let trackBy = null;
 
 	/**
 	 * Label to look for in option Object
@@ -546,20 +552,24 @@
 			: true);
 
 	function handleKeyDown(e) {
+		console.log(e.code);
 		if (e.code == "ArrowDown") pointerForward();
 		if (e.code == "ArrowUp") pointerBackward();
 		if (e.code == "Delete") removeLastElement();
 	}
 
 	function handleKeyUp(e) {
+		console.log(e.code);
 		if (e.code == "Escape") deactivate();
 	}
 
 	function handleKeyPress(e) {
+		console.log(e.code);
 		if (e.code == "Tab") addPointerElement(e);
 	}
 
 	function tagHandleKeyPress(e) {
+		console.log(e.code);
 		if (e.code == "Enter") removeElement(option);
 	}
 
@@ -585,7 +595,7 @@
 			/* istanbul ignore else */
 			if (resetAfter && internalValue.length) {
 				search = "";
-				dispatch("input", multiple ? [] : null);
+				dispatchInput(multiple ? [] : null);
 			}
 		})();
 
@@ -675,7 +685,6 @@
 	 * @returns {Boolean} returns true if element is selected
 	 */
 	function isSelected(option) {
-
 		const opt = trackBy ? option[trackBy] : option;
 		return valueKeys.indexOf(opt) > -1;
 	}
@@ -697,7 +706,6 @@
 	 * @returns {Object||String}
 	 */
 	function getOptionLabel(option) {
-		console.log(option);
 		if (isEmpty(option)) return "";
 		/* istanbul ignore else */
 		if (option.isTag) return option.label;
@@ -719,8 +727,6 @@
 	 * @param  {Boolean} block removing
 	 */
 	function select(option, key) {
-		//debugger;
-		console.log(option);
 		/* istanbul ignore else */
 		if (option.$isLabel && groupSelect) {
 			selectGroup(option);
@@ -737,14 +743,15 @@
 		if (max && multiple && internalValue.length === max) return;
 		/* istanbul ignore else */
 		if (key === "Tab" && !pointerDirty) return;
+
+		//this will cause each loop to rerender
+		filteredOptions = filteredOptions;
 		if (option.isTag) {
 			dispatch("tag", option.label, id);
 			search = "";
 			if (closeOnSelect && !multiple) deactivate();
 		} else {
-			console.log(option);
 			const _isSelected = isSelected(option);
-			console.log(internalValue);
 			if (_isSelected) {
 				if (key !== "Tab") removeElement(option);
 				return;
@@ -753,9 +760,9 @@
 			dispatch("select", option, id);
 
 			if (multiple) {
-				dispatch("input", internalValue.concat([option]), id);
+				dispatchInput(internalValue.concat([option]), id);
 			} else {
-				dispatch("input", option, id);
+				dispatchInput(option, id);
 			}
 
 			/* istanbul ignore else */
@@ -786,14 +793,14 @@
 				(option) => group[groupValues].indexOf(option) === -1
 			);
 
-			dispatch("input", newValue, id);
+			dispatchInput(newValue, id);
 		} else {
 			const optionsToAdd = group[groupValues].filter(
 				(option) => !(isOptionDisabled(option) || isSelected(option))
 			);
 
 			dispatch("select", optionsToAdd, id);
-			dispatch("input", internalValue.concat(optionsToAdd), id);
+			dispatchInput(internalValue.concat(optionsToAdd), id);
 		}
 
 		if (closeOnSelect) deactivate();
@@ -846,9 +853,9 @@
 			const newValue = internalValue
 				.slice(0, index)
 				.concat(internalValue.slice(index + 1));
-			dispatch("input", newValue, id);
+			dispatchInput(newValue, id);
 		} else {
-			dispatch("input", null, id);
+			dispatchInput(null, id);
 		}
 
 		/* istanbul ignore else */
@@ -968,9 +975,9 @@
 
 	//#region pointerMixin.js methods
 
-	function optionHighlight(index, option) {
+	function optionHighlight(index, option,point) {
 		return (
-			(index === pointer && showPointer
+			(index === point && showPointer
 				? "multiselect__option--highlight"
 				: "") + (isSelected(option) ? "multiselect__option--selected" : "")
 		);
@@ -1008,6 +1015,7 @@
 	}
 
 	function pointerForward() {
+		console.log("pointer forward");
 		/* istanbul ignore else */
 		if (pointer < filteredOptions.length - 1) {
 			pointer++;
@@ -1031,6 +1039,7 @@
 	}
 
 	function pointerBackward() {
+		console.log("pointer backward");
 		if (pointer > 0) {
 			pointer--;
 			/* istanbul ignore else */
@@ -1074,7 +1083,7 @@
 
 		if (
 			filteredOptions.length > 0 &&
-			filteredOptions[pointer].$isLabel &&
+			filteredOptions[pointer]?.$isLabel &&
 			!groupSelect
 		) {
 			pointerForward();
@@ -1082,6 +1091,7 @@
 	}
 
 	function pointerSet(index) {
+		console.log(index);
 		pointer = index;
 		pointerDirty = true;
 	}
@@ -1213,7 +1223,6 @@
 			transition:fade
 			on:focus={activate}
 			tabindex="-1"
-			on:mousedown|preventDefault
 			style={` maxHeight: ${optimizedHeight}px`}
 			bind:this={listBind}
 		>
@@ -1246,10 +1255,11 @@
 						>
 							{#if !(option && (option.$isLabel || option.$isDisabled))}
 								<span
-									class={optionHighlight(index, option) +
+									class={optionHighlight(index, option,pointer) +
 										" multiselect__option"}
 									on:click|stopPropagation={select(option)}
 									on:mouseenter={pointerSet(index)}
+									onmouseenter="console.log('lol')"
 									data-select={option && option.isTag
 										? tagPlaceholder
 										: selectLabelText}
