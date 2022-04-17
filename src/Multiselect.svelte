@@ -5,8 +5,6 @@
 	//TODO find out what html element is refered by $el
 	let el, tagsBind, searchBind, listBind;
 
-	$: console.log(el);
-	$: console.log(filterOptions);
 	export let hasSingleSelectedSlot = null;
 
 	//#region multiselectMixin.js helper functions
@@ -29,9 +27,9 @@
 		return text.indexOf(query.trim()) !== -1;
 	}
 
-	function filterOptions(options, search, label, customLabel) {
+	function filterOptions(options, search, label, _customLabel) {
 		return options.filter((option) =>
-			includes(customLabel(option, label), search)
+			includes(_customLabel(option, label), search)
 		);
 	}
 
@@ -54,7 +52,7 @@
 			}, []);
 	}
 
-	function filterGroups(search, label, values, groupLabel, customLabel) {
+	function filterGroups(search, label, values, groupLabel, _customLabel) {
 		return (groups) =>
 			groups.map((group) => {
 				/* istanbul ignore else */
@@ -68,7 +66,7 @@
 					group[values],
 					search,
 					label,
-					customLabel
+					_customLabel
 				);
 
 				return groupOptions.length
@@ -128,7 +126,7 @@
 	 * @default 'label'
 	 * @type {String}
 	 */
-	export let label = "label";
+	export let label = null;
 
 	/**
 	 * Enable/disable search in options
@@ -186,9 +184,9 @@
 	 * @type {Function}
 	 */
 	export let customLabel = (option, label) => {
-        if (isEmpty(option)) return ''
-        return label ? option[label] : option
-      }
+		if (isEmpty(option)) return "";
+		return label ? option[label] : option;
+	};
 
 	/**
 	 * Disable / Enable tagging
@@ -462,6 +460,7 @@
 	let optionKeys;
 	$: optionKeys = (() => {
 		const _options = groupValues ? flatAndStrip(options) : options;
+
 		return _options.map((element) =>
 			customLabel(element, label)?.toString().toLowerCase()
 		);
@@ -513,23 +512,23 @@
 	$: selectedLabelText = showLabels ? selectedLabel : "";
 
 	let inputStyle;
-	$: inputStyle = (()=> {
+	$: inputStyle = (() => {
 		if (searchable || (multiple && value && value.length)) {
 			// Hide input by setting the width to 0 allowing it to receive focus
 			return isOpen
-				? { width: "100%" }
-				: { width: "0", position: "absolute", padding: "0" };
+				? "width:100%"
+				: "width:0px; position: absolute; padding: 0";
 		}
 		return "";
-	})()
+	})();
 
 	let contentStyle;
 	$: contentStyle = options.length
-		? { display: "inline-block" }
-		: { display: "block" };
+		? "display: inline-block;"
+		: "display: block";
 
 	let isAbove;
-	$: isAbove = (()=> {
+	$: isAbove = (() => {
 		if (openDirection === "above" || openDirection === "top") {
 			return true;
 		} else if (openDirection === "below" || openDirection === "bottom") {
@@ -537,7 +536,7 @@
 		} else {
 			return preferredOpenDirection === "above";
 		}
-	})()
+	})();
 
 	let showSearchInput;
 	$: showSearchInput =
@@ -591,9 +590,9 @@
 		})();
 
 	$: search,
-		(() => {
+		() => {
 			dispatch("search-change", search, id);
-		});
+		};
 
 	//#endregion
 
@@ -676,6 +675,7 @@
 	 * @returns {Boolean} returns true if element is selected
 	 */
 	function isSelected(option) {
+
 		const opt = trackBy ? option[trackBy] : option;
 		return valueKeys.indexOf(opt) > -1;
 	}
@@ -697,6 +697,7 @@
 	 * @returns {Object||String}
 	 */
 	function getOptionLabel(option) {
+		console.log(option);
 		if (isEmpty(option)) return "";
 		/* istanbul ignore else */
 		if (option.isTag) return option.label;
@@ -718,6 +719,8 @@
 	 * @param  {Boolean} block removing
 	 */
 	function select(option, key) {
+		//debugger;
+		console.log(option);
 		/* istanbul ignore else */
 		if (option.$isLabel && groupSelect) {
 			selectGroup(option);
@@ -739,9 +742,10 @@
 			search = "";
 			if (closeOnSelect && !multiple) deactivate();
 		} else {
-			const isSelected = isSelected(option);
-
-			if (isSelected) {
+			console.log(option);
+			const _isSelected = isSelected(option);
+			console.log(internalValue);
+			if (_isSelected) {
 				if (key !== "Tab") removeElement(option);
 				return;
 			}
@@ -768,6 +772,7 @@
 	 * @param  {Object||String||Integer} group to select/deselect
 	 */
 	function selectGroup(selectedGroup) {
+		console.log(selectedGroup);
 		const group = options.find((option) => {
 			return option[groupLabel] === selectedGroup.$groupLabel;
 		});
@@ -874,9 +879,16 @@
 	 * Sets isOpen to TRUE
 	 */
 	function activate() {
+		//cancel activation before mount, prevents undfined error
+		console.log("activation");
+		console.log(el);
+		if (el === undefined || el === null) {
+			isOpen = false;
+			return;
+		}
 		/* istanbul ignore else */
 		if (isOpen || disabled) return;
-
+		console.log("do adjust");
 		adjustPosition();
 		/* istanbul ignore else  */
 		if (groupValues && pointer === 0 && filteredOptions.length) {
@@ -889,10 +901,10 @@
 			if (!preserveSearch) search = "";
 			if (searchBind) {
 				console.log(searchBind);
-				//setTimeout(() => searchBind?.focus());
+				setTimeout(() => searchBind.focus());
 			}
 		} else {
-			el?.focus();
+			el.focus();
 		}
 		dispatch("open", id);
 	}
@@ -934,8 +946,8 @@
 	function adjustPosition() {
 		if (typeof window === "undefined") return;
 
-		const spaceAbove = el?.getBoundingClientRect().top;
-		const spaceBelow = window.innerHeight - el?.getBoundingClientRect().bottom;
+		const spaceAbove = el.getBoundingClientRect().top;
+		const spaceBelow = window.innerHeight - el.getBoundingClientRect().bottom;
 		const hasEnoughSpaceBelow = spaceBelow > maxHeight;
 
 		if (
@@ -957,17 +969,18 @@
 	//#region pointerMixin.js methods
 
 	function optionHighlight(index, option) {
-		return {
-			"multiselect__option--highlight": index === pointer && showPointer,
-			"multiselect__option--selected": isSelected(option),
-		};
+		return (
+			(index === pointer && showPointer
+				? "multiselect__option--highlight"
+				: "") + (isSelected(option) ? "multiselect__option--selected" : "")
+		);
 	}
 
 	function groupHighlight(index, selectedGroup) {
 		if (!groupSelect) {
 			return [
-				"multiselect__option--disabled",
-				{ "multiselect__option--group": selectedGroup.$isLabel },
+				"multiselect__option--disabled" +
+					(selectedGroup.$isLabel ? "multiselect__option--group" : ""),
 			];
 		}
 
@@ -1165,11 +1178,11 @@
 				{disabled}
 				{tabindex}
 				on:input={(e) => updateSearch(e.target.value)}
-				on:focus|preventDefault={activate()}
-				on:blur|preventDefault={deactivate()}
+				on:focus={activate()}
+				on:blur={deactivate()}
 				on:keyup={handleKeyUp}
 				on:keydown|preventDefault={handleKeyDown}
-				on:keypress|preventDefault|stopPropagation|self={handleKeyPress}
+				on:keypress|stopPropagation|self|preventDefault={handleKeyPress}
 				class="multiselect__input"
 				aria-controls={"listbox-" + id}
 			/>
@@ -1236,7 +1249,7 @@
 									class={optionHighlight(index, option) +
 										" multiselect__option"}
 									on:click|stopPropagation={select(option)}
-									on:mouseenter|self={pointerSet(index)}
+									on:mouseenter={pointerSet(index)}
 									data-select={option && option.isTag
 										? tagPlaceholder
 										: selectLabelText}
@@ -1254,7 +1267,7 @@
 									data-select={groupSelect && selectGroupLabelText}
 									data-deselect={groupSelect && deselectGroupLabelText}
 									class={groupHighlight(index, option) + " multiselect__option"}
-									on:mouseenter|self={groupSelect && pointerSet(index)}
+									on:mouseenter={groupSelect && pointerSet(index)}
 									on:mousedown|preventDefault={selectGroup(option)}
 								>
 									<slot name="option" {option} {search} {index}>
