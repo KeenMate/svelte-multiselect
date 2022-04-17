@@ -1258,7 +1258,7 @@
 									class={optionHighlight(index, option,pointer) +
 										" multiselect__option"}
 									on:click|stopPropagation={select(option)}
-									on:mouseenter={pointerSet(index)}
+									on:mouseenter={() => pointerSet(index)}
 									onmouseenter="console.log('lol')"
 									data-select={option && option.isTag
 										? tagPlaceholder
