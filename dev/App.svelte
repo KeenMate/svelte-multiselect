@@ -10,7 +10,8 @@
 	bind:value
 	showLabels={false}
 	closeOnSelect={false}
-	searchable={true}
+	searchable={false}
+	placeholder="Select one"
 	options={[
 		"Select option",
 		"options",
