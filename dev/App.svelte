@@ -10,7 +10,7 @@
 	bind:value
 	showLabels={false}
 	closeOnSelect={false}
-	searchable={false}
+	searchable={true}
 	options={[
 		"Select option",
 		"options",

@@ -551,28 +551,6 @@
 			? isOpen
 			: true);
 
-	function handleKeyDown(e) {
-		console.log(e.code);
-		if (e.code == "ArrowDown") pointerForward();
-		if (e.code == "ArrowUp") pointerBackward();
-		if (e.code == "Delete") removeLastElement();
-	}
-
-	function handleKeyUp(e) {
-		console.log(e.code);
-		if (e.code == "Escape") deactivate();
-	}
-
-	function handleKeyPress(e) {
-		console.log(e.code);
-		if (e.code == "Tab") addPointerElement(e);
-	}
-
-	function tagHandleKeyPress(e) {
-		console.log(e.code);
-		if (e.code == "Enter") removeElement(option);
-	}
-
 	//#endregion
 
 	//#region pointerMixin.js computed
@@ -975,19 +953,19 @@
 
 	//#region pointerMixin.js methods
 
-	function optionHighlight(index, option,point) {
+	function optionHighlight(index, option, point) {
 		return (
 			(index === point && showPointer
-				? "multiselect__option--highlight"
-				: "") + (isSelected(option) ? "multiselect__option--selected" : "")
+				? " multiselect__option--highlight "
+				: "") + (isSelected(option) ? " multiselect__option--selected " : "")
 		);
 	}
 
 	function groupHighlight(index, selectedGroup) {
 		if (!groupSelect) {
 			return [
-				"multiselect__option--disabled" +
-					(selectedGroup.$isLabel ? "multiselect__option--group" : ""),
+				"multiselect__option--disabled " +
+					(selectedGroup.$isLabel ? " multiselect__option--group " : ""),
 			];
 		}
 
@@ -997,13 +975,16 @@
 
 		return group && !wholeGroupDisabled(group)
 			? [
-					"multiselect__option--group",
+					" multiselect__option--group ",
 					{
-						"multiselect__option--highlight": index === pointer && showPointer,
+						" multiselect__option--highlight ":
+							index === pointer && showPointer,
 					},
-					{ "multiselect__option--group-selected": wholeGroupSelected(group) },
+					{
+						" multiselect__option--group-selected ": wholeGroupSelected(group),
+					},
 			  ]
-			: "multiselect__option--disabled";
+			: " multiselect__option--disabled ";
 	}
 
 	function addPointerElement({ key } = "Enter") {
@@ -1019,13 +1000,14 @@
 		/* istanbul ignore else */
 		if (pointer < filteredOptions.length - 1) {
 			pointer++;
+			let newPointerPosition = (pointer) * optionHeight;
 			/* istanbul ignore next */
 			if (
 				listBind.scrollTop <=
-				pointerPosition - (visibleElements - 1) * optionHeight
+				newPointerPosition - (visibleElements - 1) * optionHeight
 			) {
 				listBind.scrollTop =
-					pointerPosition - (visibleElements - 1) * optionHeight;
+					newPointerPosition - (visibleElements - 1) * optionHeight;
 			}
 			/* istanbul ignore else */
 			if (
@@ -1042,9 +1024,10 @@
 		console.log("pointer backward");
 		if (pointer > 0) {
 			pointer--;
+			let newPointerPosition = pointer * optionHeight;
 			/* istanbul ignore else */
-			if (listBind.scrollTop >= pointerPosition) {
-				listBind.scrollTop = pointerPosition;
+			if (listBind.scrollTop >= newPointerPosition) {
+				listBind.scrollTop = newPointerPosition;
 			}
 			/* istanbul ignore else */
 			if (
@@ -1110,6 +1093,28 @@
 		}
 	});
 	//#endregion
+
+	function handleKeyDown(e) {
+		console.log(e.code);
+		if (e.code == "ArrowDown") pointerForward();
+		if (e.code == "ArrowUp") pointerBackward();
+		if (e.code == "Delete") removeLastElement();
+	}
+
+	function handleKeyUp(e) {
+		console.log(e.code);
+		if (e.code == "Escape") deactivate();
+	}
+
+	function handleKeyPress(e) {
+		console.log(e.code);
+		if (e.code == "Tab") addPointerElement(e);
+	}
+
+	function tagHandleKeyPress(e) {
+		console.log(e.code);
+		if (e.code == "Enter") removeElement(option);
+	}
 </script>
 
 <div
@@ -1191,7 +1196,7 @@
 				on:focus={activate()}
 				on:blur={deactivate()}
 				on:keyup={handleKeyUp}
-				on:keydown|preventDefault={handleKeyDown}
+				on:keydown|preventDefault|self|stopPropagation={handleKeyDown}
 				on:keypress|stopPropagation|self|preventDefault={handleKeyPress}
 				class="multiselect__input"
 				aria-controls={"listbox-" + id}
@@ -1220,10 +1225,11 @@
 
 	{#if isOpen}
 		<div
+			class="multiselect__content-wrapper"
 			transition:fade
 			on:focus={activate}
 			tabindex="-1"
-			style={` maxHeight: ${optimizedHeight}px`}
+			style="max-height: {optimizedHeight}px;	"
 			bind:this={listBind}
 		>
 			<ul
@@ -1255,8 +1261,8 @@
 						>
 							{#if !(option && (option.$isLabel || option.$isDisabled))}
 								<span
-									class={optionHighlight(index, option,pointer) +
-										" multiselect__option"}
+									class={optionHighlight(index, option, pointer) +
+										"  multiselect__option "}
 									on:click|stopPropagation={select(option)}
 									on:mouseenter={() => pointerSet(index)}
 									onmouseenter="console.log('lol')"
