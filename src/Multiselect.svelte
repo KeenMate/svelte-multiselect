@@ -577,9 +577,10 @@
 		})();
 
 	$: search,
-		() => {
-			dispatch("search-change", search, id);
-		};
+		((s) => {
+			console.log(s);
+			dispatch("search-change", s, id);
+		})(search);
 
 	//#endregion
 
@@ -643,6 +644,7 @@
 	 */
 	function updateSearch(query) {
 		search = query;
+		console.log(search);
 	}
 
 	/**
@@ -836,6 +838,9 @@
 
 		/* istanbul ignore else */
 		if (closeOnSelect && shouldClose) deactivate();
+
+		//will cause list to rerender so elements wont stay highlited
+		options = options;
 	}
 
 	/**

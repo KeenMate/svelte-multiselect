@@ -1,4 +1,5 @@
 <script>
+	//TODO TEST SLOTS FROM ASYNC SEARCH
 	import Multiselect from "../src/Multiselect.svelte";
 	let stringOptions = [
 		"Select option",
@@ -16,7 +17,7 @@
 		"touched",
 	];
 
-	let objectOptions = [
+	const startObjectOptions = [
 		{ title: "first", id: 0 },
 		{ title: "second", id: 1 },
 		{ title: "third", id: 2 },
@@ -25,8 +26,10 @@
 		{ title: "six", id: 5 },
 		{ title: "seventh", id: 6 },
 	];
-	let value = objectOptions[0];
 
+	let objectOptions = [];
+	let value = null;
+	let loading;
 	$: console.log(value);
 </script>
 
@@ -37,11 +40,26 @@
 	showLabels={true}
 	closeOnSelect={false}
 	searchable={true}
-	placeholder="Select one"
+	placeholder="Pick some"
 	options={objectOptions}
-	key="id"
+	trackBy="id"
 	label="title"
-	allowEmpty={false}
+	multiple={true}
+	clearOnSelect={false}
+	limit={2}
+	max={3}
+	limitText={(x) => `and ${x} other things`}
 	deselectLabel="Can't remove this value"
 	customLabel={(obj) => JSON.stringify(obj)}
+	internalSearch={false}
+	{loading}
+	on:search-change={(e, id) => {
+		let query = e.detail
+		console.log(query);
+		loading = true;
+		setTimeout(() => {
+			objectOptions = startObjectOptions.slice(0, query?.length);
+			loading = false;
+		}, 1000);
+	}}
 />
