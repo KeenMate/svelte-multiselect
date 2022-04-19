@@ -1179,8 +1179,8 @@
 				on:input={(e) => updateSearch(e.target.value)}
 				on:focus={activate()}
 				on:blur={deactivate()}
-				on:keydown|preventDefault|self|stopPropagation={handleKeyDown}
-				on:keyup|preventDefault|stopPropagation|self={handleKeyPress}
+				on:keydown|self|stopPropagation={handleKeyDown}
+				on:keyup|stopPropagation={handleKeyPress}
 				class="multiselect__input"
 				aria-controls={"listbox-" + id}
 			/>
