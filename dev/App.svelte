@@ -27,13 +27,35 @@
 		{ title: "seventh", id: 6 },
 	];
 
-	let objectOptions = startObjectOptions;
+	const nestnedOptions = [
+		{
+			language: "Javascript",
+			libs: [
+				{ name: "Vue.js", category: "Front-end" },
+				{ name: "Adonis", category: "Backend" },
+			],
+		},
+		{
+			language: "Ruby",
+			libs: [
+				{ name: "Rails", category: "Backend" },
+				{ name: "Sinatra", category: "Backend" },
+			],
+		},
+		{
+			language: "Other",
+			libs: [
+				{ name: "Laravel", category: "Backend" },
+				{ name: "Phoenix", category: "Backend" },
+			],
+		},
+	];
+
+	let objectOptions = nestnedOptions;
 	let value = [];
 	let loading;
 	$: console.log(value);
 </script>
-
-{JSON.stringify(value)}
 
 <Multiselect
 	bind:value
@@ -41,8 +63,8 @@
 	closeOnSelect={false}
 	placeholder="Pick some"
 	options={objectOptions}
-	trackBy="id"
-	label="title"
+	trackBy="name"
+	label="name"
 	clearOnSelect={false}
 	limit={2}
 	max={10}
@@ -50,21 +72,8 @@
 	searchable
 	limitText={(x) => `and ${x} other things`}
 	deselectLabel="Can't remove this value"
-	customLabel={(obj) => JSON.stringify(obj)}
 	multiple
-	on:tag={(e) => {
-		let newObj = {
-			title: e.detail,
-			id:
-				Math.max.apply(
-					Math,
-					objectOptions.map(function (o) {
-						return o.id;
-					})
-				) + 1,
-		};
-		objectOptions.push(newObj);
-
-		value.push(newObj);
-	}}
+	groupValues="libs"
+	groupLabel="language"
+	groupSelect={true}
 />
