@@ -443,7 +443,6 @@
 			normalizedSearch.length &&
 			!isExistingOption(normalizedSearch)
 		) {
-			console.log("create tag");
 			if (tagPosition === "bottom") {
 				_options.push({ isTag: true, label: search });
 			} else {
@@ -579,7 +578,6 @@
 
 	$: search,
 		((s) => {
-			console.log(s);
 			dispatch("search-change", s, id);
 		})(search);
 
@@ -645,7 +643,6 @@
 	 */
 	function updateSearch(query) {
 		search = query;
-		console.log(search);
 	}
 
 	/**
@@ -725,9 +722,7 @@
 		if (key === "Tab" && !pointerDirty) return;
 
 		//this will cause each loop to rerender
-		filteredOptions = filteredOptions;
 		if (option.isTag) {
-			console.log("dispatch tag");
 			dispatch("tag", option.label, id);
 			search = "";
 			if (closeOnSelect && !multiple) deactivate();
@@ -751,6 +746,7 @@
 		}
 		/* istanbul ignore else */
 		if (closeOnSelect) deactivate();
+		options = options;
 	}
 
 	/**
@@ -1119,7 +1115,7 @@
 	on:focus={activate}
 	on:blur={searchable ? false : deactivate()}
 	on:keydown|preventDefault={handleKeyDown}
-	on:keyup|stopPropagation|self={handleKeyPress}
+	on:keyup|stopPropagation={handleKeyPress}
 	class="multiselect"
 	role="combobox"
 	aria-owns={"listbox-" + id}
