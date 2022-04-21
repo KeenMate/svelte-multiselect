@@ -27,8 +27,8 @@
 		{ title: "seventh", id: 6 },
 	];
 
-	let objectOptions = [];
-	let value = null;
+	let objectOptions = startObjectOptions;
+	let value = [];
 	let loading;
 	$: console.log(value);
 </script>
@@ -39,27 +39,32 @@
 	bind:value
 	showLabels={true}
 	closeOnSelect={false}
-	searchable={true}
 	placeholder="Pick some"
 	options={objectOptions}
 	trackBy="id"
 	label="title"
-	multiple={true}
 	clearOnSelect={false}
 	limit={2}
-	max={3}
+	max={10}
+	taggable
+	searchable
 	limitText={(x) => `and ${x} other things`}
 	deselectLabel="Can't remove this value"
 	customLabel={(obj) => JSON.stringify(obj)}
-	internalSearch={false}
-	{loading}
-	on:search-change={(e, id) => {
-		let query = e.detail
-		console.log(query);
-		loading = true;
-		setTimeout(() => {
-			objectOptions = startObjectOptions.slice(0, query?.length);
-			loading = false;
-		}, 1000);
+	multiple
+	on:tag={(e) => {
+		let newObj = {
+			title: e.detail,
+			id:
+				Math.max.apply(
+					Math,
+					objectOptions.map(function (o) {
+						return o.id;
+					})
+				) + 1,
+		};
+		objectOptions.push(newObj);
+
+		value.push(newObj);
 	}}
 />

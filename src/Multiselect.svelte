@@ -443,6 +443,7 @@
 			normalizedSearch.length &&
 			!isExistingOption(normalizedSearch)
 		) {
+			console.log("create tag");
 			if (tagPosition === "bottom") {
 				_options.push({ isTag: true, label: search });
 			} else {
@@ -726,6 +727,7 @@
 		//this will cause each loop to rerender
 		filteredOptions = filteredOptions;
 		if (option.isTag) {
+			console.log("dispatch tag");
 			dispatch("tag", option.label, id);
 			search = "";
 			if (closeOnSelect && !multiple) deactivate();
@@ -1231,7 +1233,7 @@
 					<li>
 						<span class="multiselect__option">
 							<slot name="maxElements"
-								>Maximum of {{ max }} options selected. First remove a selected option
+								>Maximum of {max} options selected. First remove a selected option
 								to select another.</slot
 							>
 						</span>
