@@ -746,7 +746,9 @@
 		}
 		/* istanbul ignore else */
 		if (closeOnSelect) deactivate();
-		options = options;
+		setTimeout(() => {
+			options = options;
+		});
 	}
 
 	/**
@@ -839,7 +841,9 @@
 		if (closeOnSelect && shouldClose) deactivate();
 
 		//will cause list to rerender so elements wont stay highlited
-		options = options;
+		setTimeout(() => {
+			options = options;
+		});
 	}
 
 	/**
