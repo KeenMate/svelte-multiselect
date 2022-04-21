@@ -784,6 +784,7 @@
 		}
 
 		if (closeOnSelect) deactivate();
+		options = options;
 	}
 
 	/**
@@ -1195,7 +1196,7 @@
 		{/if}
 		{#if isSingleLabelVisible}
 			<span class="multiselect__single" on:mousedown|preventDefault={toggle}>
-				<slot name="singleLabel" option="singleValue">
+				<slot name="singleLabel" option={singleValue}>
 					{currentOptionLabel}
 				</slot>
 			</span>
