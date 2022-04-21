@@ -219,10 +219,10 @@
 
 	/**
 	 * Number of allowed selected options. No limit if 0.
-	 * @default 0
+	 * @default 999
 	 * @type {Number}
 	 */
-	export let max = 0;
+	export let max = 9999;
 
 	/**
 	 * Will be passed with all events as second param.
