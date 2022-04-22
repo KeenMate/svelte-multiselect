@@ -1570,6 +1570,7 @@
 		display: inline-block;
 		margin-bottom: 10px;
 		padding-top: 2px;
+		line-height: 1.15;
 	}
 
 	.multiselect--active .multiselect__placeholder {
