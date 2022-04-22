@@ -1258,7 +1258,7 @@
 									class={optionHighlight(index, option,pointer) +
 										" multiselect__option"}
 									on:click|stopPropagation={select(option)}
-									on:mouseenter={() => pointerSet(index)}
+									on:mouseenter|self={() => pointerSet(index)}
 									onmouseenter="console.log('lol')"
 									data-select={option && option.isTag
 										? tagPlaceholder
@@ -1277,8 +1277,8 @@
 									data-select={groupSelect && selectGroupLabelText}
 									data-deselect={groupSelect && deselectGroupLabelText}
 									class={groupHighlight(index, option) + " multiselect__option"}
-									on:mouseenter={groupSelect && pointerSet(index)}
-									on:mousedown|preventDefault={selectGroup(option)}
+									on:mouseenter|self={() => groupSelect && pointerSet(index)}
+									on:mousedown|preventDefault={() => selectGroup(option)}
 								>
 									<slot name="option" {option} {search} {index}>
 										<span>{getOptionLabel(option)}</span>
@@ -1370,7 +1370,7 @@
 	.multiselect__input,
 	.multiselect__single {
 		font-family: inherit;
-		font-size: 16px;
+		font-size: 14px;
 		touch-action: manipulation;
 	}
 
