@@ -219,10 +219,10 @@
 
 	/**
 	 * Number of allowed selected options. No limit if 0.
-	 * @default 0
+	 * @default 999
 	 * @type {Number}
 	 */
-	export let max = 0;
+	export let max = 9999;
 
 	/**
 	 * Will be passed with all events as second param.
@@ -449,7 +449,6 @@
 				_options.unshift({ isTag: true, label: search });
 			}
 		}
-		console.log(_options);
 
 		return _options.slice(0, optionsLimit);
 	})();
@@ -551,28 +550,6 @@
 			? isOpen
 			: true);
 
-	function handleKeyDown(e) {
-		console.log(e.code);
-		if (e.code == "ArrowDown") pointerForward();
-		if (e.code == "ArrowUp") pointerBackward();
-		if (e.code == "Delete") removeLastElement();
-	}
-
-	function handleKeyUp(e) {
-		console.log(e.code);
-		if (e.code == "Escape") deactivate();
-	}
-
-	function handleKeyPress(e) {
-		console.log(e.code);
-		if (e.code == "Tab") addPointerElement(e);
-	}
-
-	function tagHandleKeyPress(e) {
-		console.log(e.code);
-		if (e.code == "Enter") removeElement(option);
-	}
-
 	//#endregion
 
 	//#region pointerMixin.js computed
@@ -600,9 +577,9 @@
 		})();
 
 	$: search,
-		() => {
-			dispatch("search-change", search, id);
-		};
+		((s) => {
+			dispatch("search-change", s, id);
+		})(search);
 
 	//#endregion
 
@@ -745,7 +722,6 @@
 		if (key === "Tab" && !pointerDirty) return;
 
 		//this will cause each loop to rerender
-		filteredOptions = filteredOptions;
 		if (option.isTag) {
 			dispatch("tag", option.label, id);
 			search = "";
@@ -770,6 +746,9 @@
 		}
 		/* istanbul ignore else */
 		if (closeOnSelect) deactivate();
+		setTimeout(() => {
+			options = options;
+		});
 	}
 
 	/**
@@ -779,7 +758,6 @@
 	 * @param  {Object||String||Integer} group to select/deselect
 	 */
 	function selectGroup(selectedGroup) {
-		console.log(selectedGroup);
 		const group = options.find((option) => {
 			return option[groupLabel] === selectedGroup.$groupLabel;
 		});
@@ -804,6 +782,7 @@
 		}
 
 		if (closeOnSelect) deactivate();
+		options = options;
 	}
 
 	/**
@@ -860,6 +839,11 @@
 
 		/* istanbul ignore else */
 		if (closeOnSelect && shouldClose) deactivate();
+
+		//will cause list to rerender so elements wont stay highlited
+		setTimeout(() => {
+			options = options;
+		});
 	}
 
 	/**
@@ -887,15 +871,12 @@
 	 */
 	function activate() {
 		//cancel activation before mount, prevents undfined error
-		console.log("activation");
-		console.log(el);
 		if (el === undefined || el === null) {
 			isOpen = false;
 			return;
 		}
 		/* istanbul ignore else */
 		if (isOpen || disabled) return;
-		console.log("do adjust");
 		adjustPosition();
 		/* istanbul ignore else  */
 		if (groupValues && pointer === 0 && filteredOptions.length) {
@@ -907,7 +888,6 @@
 		if (searchable) {
 			if (!preserveSearch) search = "";
 			if (searchBind) {
-				console.log(searchBind);
 				setTimeout(() => searchBind.focus());
 			}
 		} else {
@@ -975,19 +955,19 @@
 
 	//#region pointerMixin.js methods
 
-	function optionHighlight(index, option,point) {
+	function optionHighlight(index, option, point) {
 		return (
 			(index === point && showPointer
-				? "multiselect__option--highlight"
-				: "") + (isSelected(option) ? "multiselect__option--selected" : "")
+				? " multiselect__option--highlight "
+				: "") + (isSelected(option) ? " multiselect__option--selected " : "")
 		);
 	}
 
 	function groupHighlight(index, selectedGroup) {
 		if (!groupSelect) {
 			return [
-				"multiselect__option--disabled" +
-					(selectedGroup.$isLabel ? "multiselect__option--group" : ""),
+				"multiselect__option--disabled " +
+					(selectedGroup.$isLabel ? " multiselect__option--group " : ""),
 			];
 		}
 
@@ -997,16 +977,19 @@
 
 		return group && !wholeGroupDisabled(group)
 			? [
-					"multiselect__option--group",
+					" multiselect__option--group ",
 					{
-						"multiselect__option--highlight": index === pointer && showPointer,
+						" multiselect__option--highlight ":
+							index === pointer && showPointer,
 					},
-					{ "multiselect__option--group-selected": wholeGroupSelected(group) },
+					{
+						" multiselect__option--group-selected ": wholeGroupSelected(group),
+					},
 			  ]
-			: "multiselect__option--disabled";
+			: " multiselect__option--disabled ";
 	}
 
-	function addPointerElement({ key } = "Enter") {
+	function addPointerElement(key = "Enter") {
 		/* istanbul ignore else */
 		if (filteredOptions.length > 0) {
 			select(filteredOptions[pointer], key);
@@ -1015,17 +998,17 @@
 	}
 
 	function pointerForward() {
-		console.log("pointer forward");
 		/* istanbul ignore else */
 		if (pointer < filteredOptions.length - 1) {
 			pointer++;
+			let newPointerPosition = pointer * optionHeight;
 			/* istanbul ignore next */
 			if (
 				listBind.scrollTop <=
-				pointerPosition - (visibleElements - 1) * optionHeight
+				newPointerPosition - (visibleElements - 1) * optionHeight
 			) {
 				listBind.scrollTop =
-					pointerPosition - (visibleElements - 1) * optionHeight;
+					newPointerPosition - (visibleElements - 1) * optionHeight;
 			}
 			/* istanbul ignore else */
 			if (
@@ -1039,12 +1022,12 @@
 	}
 
 	function pointerBackward() {
-		console.log("pointer backward");
 		if (pointer > 0) {
 			pointer--;
+			let newPointerPosition = pointer * optionHeight;
 			/* istanbul ignore else */
-			if (listBind.scrollTop >= pointerPosition) {
-				listBind.scrollTop = pointerPosition;
+			if (listBind.scrollTop >= newPointerPosition) {
+				listBind.scrollTop = newPointerPosition;
 			}
 			/* istanbul ignore else */
 			if (
@@ -1091,7 +1074,6 @@
 	}
 
 	function pointerSet(index) {
-		console.log(index);
 		pointer = index;
 		pointerDirty = true;
 	}
@@ -1110,6 +1092,22 @@
 		}
 	});
 	//#endregion
+
+	function handleKeyDown(e) {
+		if (e.code == "ArrowDown") pointerForward();
+		if (e.code == "ArrowUp") pointerBackward();
+		if (e.code == "Delete") removeLastElement();
+	}
+
+	function handleKeyPress(e) {
+		if (e.code == "Escape") deactivate();
+		if (e.key == "Tab") addPointerElement(e.key);
+		if (e.key == "Enter") addPointerElement(e.key);
+	}
+
+	function tagHandleKeyPress(e) {
+		if (e.code == "Enter") removeElement(option);
+	}
 </script>
 
 <div
@@ -1121,8 +1119,7 @@
 	on:focus={activate}
 	on:blur={searchable ? false : deactivate()}
 	on:keydown|preventDefault={handleKeyDown}
-	on:keypress|preventDefault|stopPropagation={handleKeyPress}
-	on:keyup={handleKeyUp}
+	on:keyup|stopPropagation={handleKeyPress}
 	class="multiselect"
 	role="combobox"
 	aria-owns={"listbox-" + id}
@@ -1190,9 +1187,8 @@
 				on:input={(e) => updateSearch(e.target.value)}
 				on:focus={activate()}
 				on:blur={deactivate()}
-				on:keyup={handleKeyUp}
-				on:keydown|preventDefault={handleKeyDown}
-				on:keypress|stopPropagation|self|preventDefault={handleKeyPress}
+				on:keydown|self|stopPropagation={handleKeyDown}
+				on:keyup|stopPropagation={handleKeyPress}
 				class="multiselect__input"
 				aria-controls={"listbox-" + id}
 			/>
@@ -1200,7 +1196,7 @@
 		{/if}
 		{#if isSingleLabelVisible}
 			<span class="multiselect__single" on:mousedown|preventDefault={toggle}>
-				<slot name="singleLabel" option="singleValue">
+				<slot name="singleLabel" option={singleValue}>
 					{currentOptionLabel}
 				</slot>
 			</span>
@@ -1220,10 +1216,11 @@
 
 	{#if isOpen}
 		<div
+			class="multiselect__content-wrapper"
 			transition:fade
 			on:focus={activate}
 			tabindex="-1"
-			style={` maxHeight: ${optimizedHeight}px`}
+			style="max-height: {optimizedHeight}px;	"
 			bind:this={listBind}
 		>
 			<ul
@@ -1237,7 +1234,7 @@
 					<li>
 						<span class="multiselect__option">
 							<slot name="maxElements"
-								>Maximum of {{ max }} options selected. First remove a selected option
+								>Maximum of {max} options selected. First remove a selected option
 								to select another.</slot
 							>
 						</span>
@@ -1255,11 +1252,10 @@
 						>
 							{#if !(option && (option.$isLabel || option.$isDisabled))}
 								<span
-									class={optionHighlight(index, option,pointer) +
-										" multiselect__option"}
+									class={optionHighlight(index, option, pointer) +
+										"  multiselect__option "}
 									on:click|stopPropagation={select(option)}
-									on:mouseenter|self={() => pointerSet(index)}
-									onmouseenter="console.log('lol')"
+									on:mouseenter={() => pointerSet(index)}
 									data-select={option && option.isTag
 										? tagPlaceholder
 										: selectLabelText}

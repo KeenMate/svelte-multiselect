@@ -1,2 +1,2 @@
 
-export {default as Mutliselect} from "./src/Multiselect.svelte"
+export {default as Multiselect} from "./src/Multiselect.svelte"
