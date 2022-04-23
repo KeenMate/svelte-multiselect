@@ -58,7 +58,25 @@
 </script>
 
 <Multiselect
-	bind:value
+	showLabels={true}
+	closeOnSelect={false}
+	placeholder="Pick some"
+	options={objectOptions}
+	trackBy="name"
+	label="name"
+	clearOnSelect={false}
+	limit={2}
+	max={10}
+	taggable
+	searchable
+	limitText={(x) => `and ${x} other things`}
+	deselectLabel="Can't remove this value"
+	multiple
+	groupValues="libs"
+	groupLabel="language"
+	groupSelect={true}
+/>
+<Multiselect
 	showLabels={true}
 	closeOnSelect={false}
 	placeholder="Pick some"

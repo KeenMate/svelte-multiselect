@@ -1123,7 +1123,7 @@
 	class="multiselect"
 	role="combobox"
 	aria-owns={"listbox-" + id}
->
+	>
 	<slot name="caret" {toggle}>
 		<div
 			on:mousedown|preventDefault|stopPropagation={toggle}
@@ -1148,7 +1148,7 @@
 								<i
 									tabindex="1"
 									on:keypress|preventDefault={tagHandleKeyPress}
-									on:mousedown|preventDefault={removeElement(option)}
+									on:mousedown|preventDefault={()=>removeElement(option)}
 									class="multiselect__tag-icon"
 								/>
 							</span>
@@ -1185,8 +1185,8 @@
 				{disabled}
 				{tabindex}
 				on:input={(e) => updateSearch(e.target.value)}
-				on:focus={activate()}
-				on:blur={deactivate()}
+				on:focus={activate}
+				on:blur={deactivate}
 				on:keydown|self|stopPropagation={handleKeyDown}
 				on:keyup|stopPropagation={handleKeyPress}
 				class="multiselect__input"
@@ -1254,7 +1254,7 @@
 								<span
 									class={optionHighlight(index, option, pointer) +
 										"  multiselect__option "}
-									on:click|stopPropagation={select(option)}
+									on:click|stopPropagation={()=>select(option)}
 									on:mouseenter={() => pointerSet(index)}
 									data-select={option && option.isTag
 										? tagPlaceholder
@@ -1274,7 +1274,7 @@
 									data-deselect={groupSelect && deselectGroupLabelText}
 									class={groupHighlight(index, option) + " multiselect__option"}
 									on:mouseenter={groupSelect && pointerSet(index)}
-									on:mousedown|preventDefault={selectGroup(option)}
+									on:mousedown|preventDefault={()=>selectGroup(option)}
 								>
 									<slot name="option" {option} {search} {index}>
 										<span>{getOptionLabel(option)}</span>
