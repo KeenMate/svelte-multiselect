@@ -1273,8 +1273,8 @@
 									data-select={groupSelect && selectGroupLabelText}
 									data-deselect={groupSelect && deselectGroupLabelText}
 									class={groupHighlight(index, option) + " multiselect__option"}
-									on:mouseenter={groupSelect && pointerSet(index)}
-									on:mousedown|preventDefault={()=>selectGroup(option)}
+									on:mouseenter|self={() => groupSelect && pointerSet(index)}
+									on:mousedown|preventDefault={() => selectGroup(option)}
 								>
 									<slot name="option" {option} {search} {index}>
 										<span>{getOptionLabel(option)}</span>
@@ -1366,7 +1366,7 @@
 	.multiselect__input,
 	.multiselect__single {
 		font-family: inherit;
-		font-size: 16px;
+		font-size: 14px;
 		touch-action: manipulation;
 	}
 
@@ -1570,6 +1570,7 @@
 		display: inline-block;
 		margin-bottom: 10px;
 		padding-top: 2px;
+		line-height: 1.15;
 	}
 
 	.multiselect--active .multiselect__placeholder {
