@@ -571,8 +571,10 @@
 		(() => {
 			/* istanbul ignore else */
 			if (resetAfter && internalValue.length) {
-				search = "";
-				dispatchInput(multiple ? [] : null);
+				setTimeout(() => {
+					search = "";
+					dispatchInput(multiple ? [] : null);
+				});
 			}
 		})();
 
@@ -1123,7 +1125,7 @@
 	class="multiselect"
 	role="combobox"
 	aria-owns={"listbox-" + id}
-	>
+>
 	<slot name="caret" {toggle}>
 		<div
 			on:mousedown|preventDefault|stopPropagation={toggle}
@@ -1148,7 +1150,7 @@
 								<i
 									tabindex="1"
 									on:keypress|preventDefault={tagHandleKeyPress}
-									on:mousedown|preventDefault={()=>removeElement(option)}
+									on:mousedown|preventDefault={() => removeElement(option)}
 									class="multiselect__tag-icon"
 								/>
 							</span>
@@ -1217,7 +1219,7 @@
 	{#if isOpen}
 		<div
 			class="multiselect__content-wrapper"
-			transition:fade={{duration:250}}
+			transition:fade={{ duration: 250 }}
 			on:focus={activate}
 			tabindex="-1"
 			style="max-height: {optimizedHeight}px;	"
@@ -1254,7 +1256,7 @@
 								<span
 									class={optionHighlight(index, option, pointer) +
 										"  multiselect__option "}
-									on:click|stopPropagation={()=>select(option)}
+									on:click|stopPropagation={() => select(option)}
 									on:mouseenter={() => pointerSet(index)}
 									data-select={option && option.isTag
 										? tagPlaceholder
