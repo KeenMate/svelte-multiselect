@@ -246,7 +246,7 @@
 	 * @default 1000
 	 * @type {String}
 	 */
-	export let groupValues;
+	export let groupValues = null;
 
 	/**
 	 * Name of the property containing
@@ -254,7 +254,7 @@
 	 * @default 1000
 	 * @type {String}
 	 */
-	export let groupLabel;
+	export let groupLabel = null;
 
 	/**
 	 * Allow to select all group values
@@ -665,7 +665,7 @@
 	 */
 	function isSelected(option) {
 		const opt = trackBy ? option[trackBy] : option;
-		return valueKeys.indexOf(opt) > -1;
+		return valueKeys?.indexOf(opt) > -1 ?? false;
 	}
 
 	/**
@@ -826,8 +826,8 @@
 
 		const index =
 			typeof option === "object"
-				? valueKeys.indexOf(option[trackBy])
-				: valueKeys.indexOf(option);
+				? valueKeys?.indexOf(option[trackBy])
+				: valueKeys?.indexOf(option);
 
 		dispatch("remove", option, id);
 		if (multiple) {
