@@ -1219,7 +1219,7 @@
 	{#if isOpen}
 		<div
 			class="multiselect__content-wrapper"
-			transition:fade={{ duration: 250 }}
+			transition:fade={{ duration: 75 }}
 			on:focus={activate}
 			tabindex="-1"
 			style="max-height: {optimizedHeight}px;	"
