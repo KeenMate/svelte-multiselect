@@ -385,6 +385,8 @@
 
 	export let containerClass = "";
 
+	//if true, will make multiselect same size as bootstrap size sm input
+	export let small = false;
 	//#region pointerMixin.js props
 
 	/**
@@ -1120,6 +1122,7 @@
 	class:multiselect--active={isOpen}
 	class:multiselect--disabled={disabled}
 	class:multiselect--above={isAbove}
+	class:multiselect-sm={small}
 	on:focus={activate}
 	on:blur={searchable ? false : deactivate()}
 	on:keydown|preventDefault={handleKeyDown}
@@ -1314,7 +1317,7 @@
 	{/if}
 </div>
 
-<style>
+<style lang="scss">
 	fieldset[disabled] .multiselect {
 		pointer-events: none;
 	}
@@ -1777,6 +1780,67 @@
 		}
 		to {
 			transform: rotate(2turn);
+		}
+	}
+
+	.multiselect-sm {
+		//! setting Multiselect height to 31 px to be in line with other sm inputs
+		&.multiselect {
+			min-height: 31px !important;
+		}
+
+		.multiselect,
+		.multiselect__input,
+		.multiselect__single {
+			font-size: 14px;
+		}
+
+		.multiselect__tags {
+			min-height: 31px !important;
+			padding: 4px 28px 0 4px !important;
+		}
+
+		.multiselect__select {
+			height: 31px !important;
+			width: 30px !important;
+		}
+
+		.multiselect__single {
+			margin-bottom: 4px !important;
+			padding-left: 4px !important;
+		}
+
+		.multiselect__input {
+			margin-bottom: 4px !important;
+		}
+
+		.multiselect__placeholder {
+			padding-top: 0 !important;
+			margin-bottom: 4px !important;
+		}
+
+		.multiselect__option {
+			min-height: 25px !important;
+			padding: 4px 8px !important;
+			line-height: 23px !important;
+		}
+
+		.multiselect__current {
+			min-height: 31px !important;
+		}
+
+		.multiselect__option:after {
+			line-height: 31px !important;
+		}
+
+		.multiselect__tag {
+			margin-bottom: 0 !important;
+			padding: 3px 26px 3px 10px !important;
+			margin-right: 5px !important;
+		}
+
+		.multiselect__tag-icon {
+			line-height: 19px !important;
 		}
 	}
 </style>
