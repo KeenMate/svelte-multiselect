@@ -396,7 +396,7 @@
 	 */
 	export let showPointer = true;
 
-	export let optionHeight = 40;
+	export let optionHeight = small ? 31 : 40;
 
 	//#endregion
 
