@@ -383,6 +383,8 @@
 
 	//#endregion
 
+	export let containerClass = "";
+
 	//#region pointerMixin.js props
 
 	/**
@@ -1122,7 +1124,7 @@
 	on:blur={searchable ? false : deactivate()}
 	on:keydown|preventDefault={handleKeyDown}
 	on:keyup|stopPropagation={handleKeyPress}
-	class="multiselect"
+	class="multiselect {containerClass}"
 	role="combobox"
 	aria-owns={"listbox-" + id}
 >
