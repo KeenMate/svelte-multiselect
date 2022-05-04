@@ -1127,7 +1127,7 @@
 	class:multiselect--disabled={disabled}
 	class:multiselect--above={isAbove}
 	class:multiselect-sm={small}
-	class:overflow={small}
+	class:overflow
 	on:focus={activate}
 	on:blur={searchable ? false : deactivate()}
 	on:keydown|preventDefault={handleKeyDown}
@@ -1849,18 +1849,19 @@
 				line-height: 19px !important;
 			}
 		}
-	}
-	.overflow {
-		//https://github.com/shentao/vue-multiselect/issues/832#issuecomment-589858818
-		&.multiselect .multiselect__content-wrapper {
-			min-width: 100%;
-			width: auto;
-			border: none;
-			box-shadow: 4px 4px 10px 0 rgba(0, 0, 0, 0.1);
-		}
 
-		&.multiselect--active .multiselect__tags {
-			border-bottom: none;
+		.overflow.multiselect {
+			//https://github.com/shentao/vue-multiselect/issues/832#issuecomment-589858818
+			.multiselect__content-wrapper {
+				min-width: 100%;
+				width: auto;
+				border: none;
+				box-shadow: 4px 4px 10px 0 rgba(0, 0, 0, 0.1);
+			}
+
+			.multiselect--active .multiselect__tags {
+				border-bottom: none;
+			}
 		}
 	}
 </style>
