@@ -1176,10 +1176,10 @@
 				</slot>
 			{/if}
 		</slot>
-		<div name="multiselect__loading" transition:fade>
+		<div name="multiselect__loading">
 			<slot name="loading">
 				{#if loading}
-					<div class="multiselect__spinner" />
+					<div class="multiselect__spinner" transition:fade />
 				{/if}
 			</slot>
 		</div>
