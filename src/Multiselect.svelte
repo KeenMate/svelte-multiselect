@@ -105,7 +105,7 @@
 	 * If `labal` prop is passed, label will equal option['label']
 	 * @type {Array}
 	 */
-	export let options = true;
+	export let options = [];
 
 	/**
 	 * Equivalent to the `multiple` attribute on a `<select>` input.
