@@ -588,7 +588,7 @@
 
 	$: search,
 		((s) => {
-			dispatch("search-change", s, id);
+			dispatch("search-change", s);
 		})(search);
 
 	//#endregion
