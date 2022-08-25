@@ -8,8 +8,8 @@
 	export let hasSingleSelectedSlot = null;
 
 	/** this is fix for vue v-model that automatically updates value when input is emitted	 */
-	function dispatchInput(val, id) {
-		dispatch("input", val, id);
+	function dispatchInput(val) {
+		dispatch("input", val);
 		value = val;
 	}
 
@@ -105,7 +105,7 @@
 	 * If `labal` prop is passed, label will equal option['label']
 	 * @type {Array}
 	 */
-	export let options = true;
+	export let options = [];
 
 	/**
 	 * Equivalent to the `multiple` attribute on a `<select>` input.
@@ -588,7 +588,7 @@
 
 	$: search,
 		((s) => {
-			dispatch("search-change", s, id);
+			dispatch("search-change", s);
 		})(search);
 
 	//#endregion
@@ -733,7 +733,7 @@
 
 		//this will cause each loop to rerender
 		if (option.isTag) {
-			dispatch("tag", option.label, id);
+			dispatch("tag", option.label);
 			search = "";
 			if (closeOnSelect && !multiple) deactivate();
 		} else {
@@ -743,12 +743,12 @@
 				return;
 			}
 
-			dispatch("select", option, id);
+			dispatch("select", option);
 
 			if (multiple) {
-				dispatchInput(internalValue.concat([option]), id);
+				dispatchInput(internalValue.concat([option]));
 			} else {
-				dispatchInput(option, id);
+				dispatchInput(option);
 			}
 
 			/* istanbul ignore else */
@@ -775,20 +775,20 @@
 		if (!group) return;
 
 		if (wholeGroupSelected(group)) {
-			dispatch("remove", group[groupValues], id);
+			dispatch("remove", group[groupValues]);
 
 			const newValue = internalValue.filter(
 				(option) => group[groupValues].indexOf(option) === -1
 			);
 
-			dispatchInput(newValue, id);
+			dispatchInput(newValue);
 		} else {
 			const optionsToAdd = group[groupValues].filter(
 				(option) => !(isOptionDisabled(option) || isSelected(option))
 			);
 
-			dispatch("select", optionsToAdd, id);
-			dispatchInput(internalValue.concat(optionsToAdd), id);
+			dispatch("select", optionsToAdd);
+			dispatchInput(internalValue.concat(optionsToAdd));
 		}
 
 		if (closeOnSelect) deactivate();
@@ -837,14 +837,14 @@
 				? valueKeys?.indexOf(option[trackBy])
 				: valueKeys?.indexOf(option);
 
-		dispatch("remove", option, id);
+		dispatch("remove", option);
 		if (multiple) {
 			const newValue = internalValue
 				.slice(0, index)
 				.concat(internalValue.slice(index + 1));
-			dispatchInput(newValue, id);
+			dispatchInput(newValue);
 		} else {
-			dispatchInput(null, id);
+			dispatchInput(null);
 		}
 
 		/* istanbul ignore else */
@@ -922,7 +922,7 @@
 			el.blur();
 		}
 		if (!preserveSearch) search = "";
-		dispatch("close", getValue(), id);
+		dispatch("close", getValue());
 	}
 
 	/**
@@ -1176,10 +1176,10 @@
 				</slot>
 			{/if}
 		</slot>
-		<div name="multiselect__loading" transition:fade>
+		<div name="multiselect__loading">
 			<slot name="loading">
 				{#if loading}
-					<div class="multiselect__spinner" />
+					<div class="multiselect__spinner" transition:fade />
 				{/if}
 			</slot>
 		</div>

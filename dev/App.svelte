@@ -75,6 +75,7 @@
 	groupValues="libs"
 	groupLabel="language"
 	groupSelect={true}
+	small
 />
 <Multiselect
 	showLabels={true}
@@ -95,8 +96,4 @@
 	groupLabel="language"
 	groupSelect={true}
 />
-adw
-aw
-daw
-sadw
-daw
+adw aw daw sadw daw
