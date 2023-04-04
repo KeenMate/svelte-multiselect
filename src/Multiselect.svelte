@@ -1201,7 +1201,7 @@
 				on:blur={deactivate}
 				on:keydown|self|stopPropagation={handleKeyDown}
 				on:keyup|stopPropagation={handleKeyPress}
-				class="multiselect__input"
+				class="multiselect__input {$$restProps.inputClass}"
 				aria-controls={"listbox-" + id}
 			/>
 			<!-- content here -->
