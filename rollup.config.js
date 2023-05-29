@@ -1,23 +1,23 @@
-import svelte from "rollup-plugin-svelte";
-import resolve from "@rollup/plugin-node-resolve";
-import commonjs from "@rollup/plugin-commonjs";
-import sveltePreprocess from "svelte-preprocess";
-import postcss from "rollup-plugin-postcss";
+const svelte = require("rollup-plugin-svelte")
+const {default: resolve} = require("@rollup/plugin-node-resolve")
+const commonjs = require("@rollup/plugin-commonjs")
+const sveltePreprocess = require("svelte-preprocess")
+const postcss = require("rollup-plugin-postcss")
 
-const pkg = require("./package.json");
+const pkg = require("./package.json")
 
-export default {
+module.exports = {
 	input: pkg.main,
 	output: [
-		{ file: pkg.module, format: "es" },
+		{file: pkg.module, format: "es"}
 		// { file: pkg.name, format: "umd", name: "svelte-adminlte" }
 	],
 	plugins: [
 		svelte({
-			preprocess: sveltePreprocess(),
+			preprocess: sveltePreprocess()
 		}),
 		resolve(),
 		commonjs(),
-    postcss(),
-	],
-};
+		postcss()
+	]
+}

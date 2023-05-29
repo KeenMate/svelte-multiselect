@@ -402,6 +402,12 @@
 
 	export let optionHeight = small ? 31 : 40;
 
+	/**
+	 * Offset of dropdown menu to keep from screen's edge
+	 * @type {number}
+	 */
+	export let screenEdgeOffset = 5
+
 	//#endregion
 
 	//#region multiselectMixin.js data
@@ -557,6 +563,13 @@
 		(hasSingleSelectedSlot && (visibleSingleValue || visibleSingleValue === 0)
 			? isOpen
 			: true);
+
+	let contentWrapperHorizontalOffset = 0
+	$: if (listBind) {
+		const rect = listBind.getBoundingClientRect()
+		contentWrapperHorizontalOffset = Math.min(screen.width - rect.x - rect.width - screenEdgeOffset, 0)
+		console.log("contentWrapperHorizontalOffset", contentWrapperHorizontalOffset)
+	}
 
 	//#endregion
 
@@ -1228,18 +1241,19 @@
 
 	{#if isOpen}
 		<div
+			bind:this={listBind}
 			class="multiselect__content-wrapper"
+			tabindex="-1"
+			style:max-height="{optimizedHeight}px"
+			style:left="{contentWrapperHorizontalOffset}px"
 			transition:fade={{ duration: 75 }}
 			on:focus={activate}
-			tabindex="-1"
-			style="max-height: {optimizedHeight}px;	"
-			bind:this={listBind}
 		>
 			<ul
+				id={"listbox-" + id}
 				class="multiselect__content"
 				style={contentStyle}
 				role="listbox"
-				id={"listbox-" + id}
 			>
 				<slot name="beforeList" />
 				{#if multiple && max === internalValue.length}
@@ -1323,7 +1337,7 @@
 </div>
 
 <style lang="scss">
-	:global {
+	:global() {
 		fieldset[disabled] .multiselect {
 			pointer-events: none;
 		}
