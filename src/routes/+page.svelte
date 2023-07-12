@@ -82,4 +82,7 @@
 	groupSelect={true}
 	small
 />
-<Multiselect/>
+
+<h1>SIMPLE</h1>
+<br /><br /><br />
+<Multiselect options={startObjectOptions} trackBy="id" label="title" />
