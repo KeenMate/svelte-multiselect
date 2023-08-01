@@ -1164,6 +1164,7 @@
 							{#if !(option && (option.$isLabel || option.$isDisabled))}
 								<!-- svelte-ignore a11y-click-events-have-key-events -->
 								<!-- svelte-ignore a11y-no-static-element-interactions -->
+								<!-- Mouse down is used to prevent bluring before selecting option -->
 								<span
 									class={optionHighlight(index, option, pointer) + '  multiselect__option '}
 									on:click|stopPropagation={() => select(option)}
@@ -1171,6 +1172,7 @@
 									data-select={option && option.isTag ? tagPlaceholder : selectLabelText}
 									data-selected={selectedLabelText}
 									data-deselect={deselectLabelText}
+									on:mousedown|preventDefault
 								>
 									<slot name="option" {option} {search} {index}>
 										<span>{getOptionLabel(option)}</span>
