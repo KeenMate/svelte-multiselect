@@ -1,94 +1,100 @@
-<script>
-	import { fade } from "svelte/transition";
-	import { onMount, createEventDispatcher } from "svelte";
+<script lang="ts">
+	import { fade } from 'svelte/transition';
+	import { onMount, createEventDispatcher } from 'svelte';
+	import { isEmpty, not } from './helpers.js';
+
 	let dispatch = createEventDispatcher();
 	//TODO find out what html element is refered by $el
-	let el, tagsBind, searchBind, listBind;
+	let el: HTMLDivElement | null | undefined,
+		tagsBind,
+		searchBind: HTMLInputElement,
+		listBind: HTMLDivElement;
 
-	export let hasSingleSelectedSlot = null;
+	export let hasSingleSelectedSlot = false;
 
 	/** this is fix for vue v-model that automatically updates value when input is emitted	 */
-	function dispatchInput(val) {
-		dispatch("input", val);
+	function dispatchInput(val: any[] | null) {
+		dispatch('input', val);
 		value = val;
 	}
 
-	//#region multiselectMixin.js helper functions
-	function isEmpty(opt) {
-		if (opt === 0) return false;
-		if (Array.isArray(opt) && opt.length === 0) return true;
-		return !opt;
-	}
-
-	function not(fun) {
-		return (...params) => !fun(...params);
-	}
-
-	function includes(str, query) {
+	function includes(str: string | boolean | null | undefined, query: string) {
 		/* istanbul ignore else */
-		if (str === undefined) str = "undefined";
-		if (str === null) str = "null";
-		if (str === false) str = "false";
+		if (str === undefined) str = 'undefined';
+		if (str === null) str = 'null';
+		if (str === false) str = 'false';
 		const text = str.toString().toLowerCase();
 		return text.indexOf(query.trim()) !== -1;
 	}
 
-	function filterOptions(options, search, label, _customLabel) {
-		return options.filter((option) =>
-			includes(_customLabel(option, label), search)
-		);
+	function filterOptions(
+		options: any[],
+		search: string,
+		label: string | null,
+		_customLabel: { (option: any, label: string): any; (arg0: any, arg1: any): any }
+	) {
+		return options.filter((option: any) => includes(_customLabel(option, label), search));
 	}
 
-	function stripGroups(options) {
-		return options.filter((option) => !option.$isLabel);
+	function stripGroups(options: any[]) {
+		return options.filter((option: { $isLabel: any }) => !option.$isLabel);
 	}
 
-	function flattenOptions(values, label) {
-		return (options) =>
-			options.reduce((prev, curr) => {
+	function flattenOptions(values: string | null, label: string | number | null) {
+		return (options: any[]) =>
+			options.reduce(
+				(prev: { $groupLabel: any; $isLabel: boolean }[], curr: { [x: string]: any }) => {
+					/* istanbul ignore else */
+					if (curr[values as string] && curr[values as string].length) {
+						prev.push({
+							$groupLabel: curr[label as string],
+							$isLabel: true
+						});
+						return prev.concat(curr[values as string]);
+					}
+					return prev;
+				},
+				[]
+			);
+	}
+
+	function filterGroups(
+		search: any,
+		label: any,
+		values: string | number | null,
+		groupLabel: string | number | null,
+		_customLabel: (option: any, label: string) => any
+	) {
+		return (groups: any[]) =>
+			groups.map((group: { [x: string]: any }) => {
 				/* istanbul ignore else */
-				if (curr[values] && curr[values].length) {
-					prev.push({
-						$groupLabel: curr[label],
-						$isLabel: true,
-					});
-					return prev.concat(curr[values]);
-				}
-				return prev;
-			}, []);
-	}
-
-	function filterGroups(search, label, values, groupLabel, _customLabel) {
-		return (groups) =>
-			groups.map((group) => {
-				/* istanbul ignore else */
-				if (!group[values]) {
+				if (!group[values as string]) {
 					console.warn(
 						`Options passed to vue-multiselect do not contain groups, despite the config.`
 					);
 					return [];
 				}
-				const groupOptions = filterOptions(
-					group[values],
-					search,
-					label,
-					_customLabel
-				);
+				const groupOptions = filterOptions(group[values as string], search, label, _customLabel);
 
 				return groupOptions.length
 					? {
-							[groupLabel]: group[groupLabel],
-							[values]: groupOptions,
+							[groupLabel as string]: group[groupLabel as string],
+							[values as string]: groupOptions
 					  }
 					: [];
 			});
 	}
 
-	const flow =
-		(...fns) =>
-		(x) =>
-			fns.reduce((v, f) => f(v), x);
-	//#endregion
+	const flow = (
+		...fns: {
+			(groups: any): any;
+			(options: any): any;
+			(options: any): any;
+			(options: any): any;
+		}[]
+	) => {
+		return (x: any) => fns.reduce((v, f) => f(v), x);
+	}; //#endregion
 
 	//#region multiselectMixin.js props
 
@@ -105,7 +111,7 @@
 	 * If `labal` prop is passed, label will equal option['label']
 	 * @type {Array}
 	 */
-	export let options = [];
+	export let options: any[] = [];
 
 	/**
 	 * Equivalent to the `multiple` attribute on a `<select>` input.
@@ -118,21 +124,21 @@
 	 * Presets the selected options value.
 	 * @type {Object||Array||String||Integer}
 	 */
-	export let value = [];
+	export let value: any = [];
 
 	/**
 	 * Key to compare objects
 	 * @default 'id'
 	 * @type {String}
 	 */
-	export let trackBy = null;
+	export let trackBy: string | null = null;
 
 	/**
 	 * Label to look for in option Object
 	 * @default 'label'
 	 * @type {String}
 	 */
-	export let label = null;
+	export let label: string | null = null;
 
 	/**
 	 * Enable/disable search in options
@@ -160,7 +166,7 @@
 	 * @default 'Select option'
 	 * @type {String}
 	 */
-	export let placeholder = "Select option";
+	export let placeholder = 'Select option';
 
 	/**
 	 * Allow to remove all selected values
@@ -189,8 +195,8 @@
 	 * @default false
 	 * @type {Function}
 	 */
-	export let customLabel = (option, label) => {
-		if (isEmpty(option)) return "";
+	export let customLabel = (option: any, label: string | null) => {
+		if (isEmpty(option)) return '';
 		return label ? option[label] : option;
 	};
 
@@ -206,7 +212,7 @@
 	 * @default 'Press enter to create a tag'
 	 * @type {String}
 	 */
-	export let tagPlaceholder = "Press enter to create a tag";
+	export let tagPlaceholder = 'Press enter to create a tag';
 
 	/**
 	 * By default new tags will appear above the search results.
@@ -215,7 +221,7 @@
 	 * @default 'top'
 	 * @type {String}
 	 */
-	export let tagPosition = "top";
+	export let tagPosition = 'top';
 
 	/**
 	 * Number of allowed selected options. No limit if 0.
@@ -229,8 +235,9 @@
 	 * Useful for identifying events origin.
 	 * @default null
 	 * @type {String|Integer}
+	 * @deprecated
 	 */
-	export let id = null;
+	export let id: string | null = null;
 
 	/**
 	 * Limits the options displayed in the dropdown
@@ -243,18 +250,18 @@
 	/**
 	 * Name of the property containing
 	 * the group values
-	 * @default 1000
+	 * @default null
 	 * @type {String}
 	 */
-	export let groupValues = null;
+	export let groupValues: string | null = null;
 
 	/**
 	 * Name of the property containing
 	 * the group label
-	 * @default 1000
+	 * @default null
 	 * @type {String}
 	 */
-	export let groupLabel = null;
+	export let groupLabel: string | null = null;
 
 	/**
 	 * Allow to select all group values
@@ -270,7 +277,7 @@
 	 * @default 1000
 	 * @type {String}
 	 */
-	export let blockKeys = [];
+	export let blockKeys: string[] = [];
 
 	/**
 	 * Prevent from wiping up the search value
@@ -295,37 +302,37 @@
 	 * @default ''
 	 * @type {String}
 	 */
-	export let name = "";
+	export let name = '';
 	/**
 	 * String to show when pointing to an option
 	 * @default 'Press enter to select'
 	 * @type {String}
 	 */
-	export let selectLabel = "Press enter to select";
+	export let selectLabel = 'Press enter to select';
 	/**
 	 * String to show when pointing to an option
 	 * @default 'Press enter to select'
 	 * @type {String}
 	 */
-	export let selectGroupLabel = "Press enter to select group";
+	export let selectGroupLabel = 'Press enter to select group';
 	/**
 	 * String to show next to selected option
 	 * @default 'Selected'
 	 * @type {String}
 	 */
-	export let selectedLabel = "Selected";
+	export let selectedLabel = 'Selected';
 	/**
 	 * String to show when pointing to an already selected option
 	 * @default 'Press enter to remove'
 	 * @type {String}
 	 */
-	export let deselectLabel = "Press enter to remove";
+	export let deselectLabel = 'Press enter to remove';
 	/**
 	 * String to show when pointing to an already selected option
 	 * @default 'Press enter to remove'
 	 * @type {String}
 	 */
-	export let deselectGroupLabel = "Press enter to deselect group";
+	export let deselectGroupLabel = 'Press enter to deselect group';
 	/**
 	 * Decide whether to show pointer labels
 	 * @default true
@@ -351,7 +358,7 @@
 	 * @param {Int} count Number of elements more than limit
 	 * @type {Function}
 	 */
-	export let limitText = (count) => `and ${count} more`;
+	export let limitText = (count: number) => `and ${count} more`;
 	/**
 	 * Set true to trigger the loading spinner.
 	 * @default False
@@ -369,7 +376,7 @@
 	 * @default ''
 	 * @type {String}
 	 */
-	export let openDirection = "";
+	export let openDirection = '';
 	/**
 	 * Shows slot with message about empty options
 	 * @default true
@@ -383,13 +390,19 @@
 
 	//#endregion
 
-	export let containerClass = "";
+	export let containerClass = '';
 
 	//if true, will make multiselect same size as bootstrap size sm input
 	export let small = false;
 
 	//if true will allow option list to expand beyond size of input
 	export let overflow = false;
+
+	/**
+	 * Offset of dropdown menu to keep from screen's edge
+	 * @type {number}
+	 */
+	export let screenEdgeOffset: number = 5;
 
 	//#region pointerMixin.js props
 
@@ -402,19 +415,13 @@
 
 	export let optionHeight = small ? 31 : 40;
 
-	/**
-	 * Offset of dropdown menu to keep from screen's edge
-	 * @type {number}
-	 */
-	export let screenEdgeOffset = 5
-
 	//#endregion
 
 	//#region multiselectMixin.js data
 
-	let search = "";
+	let search = '';
 	let isOpen = false;
-	let preferredOpenDirection = "below";
+	let preferredOpenDirection = 'below';
 	let optimizedHeight = maxHeight;
 	//#endregion
 
@@ -426,14 +433,13 @@
 	//#endregion
 
 	//#region multiselectMixin.js computed
-	let internalValue;
+	let internalValue: any[];
 
-	$: internalValue =
-		value || value === 0 ? (Array.isArray(value) ? value : [value]) : [];
+	$: internalValue = value || value === 0 ? (Array.isArray(value) ? value : [value]) : [];
 
-	let filteredOptions;
+	let filteredOptions: string | ArrayLike<any>;
 	$: filteredOptions = (() => {
-		const _search = search || "";
+		const _search = search || '';
 		const normalizedSearch = _search.toLowerCase().trim();
 
 		let _options = options.concat();
@@ -444,20 +450,14 @@
 				? filterAndFlat(_options, normalizedSearch, label)
 				: filterOptions(_options, normalizedSearch, label, customLabel);
 		} else {
-			_options = groupValues
-				? flattenOptions(groupValues, groupLabel)(_options)
-				: _options;
+			_options = groupValues ? flattenOptions(groupValues, groupLabel)(_options) : _options;
 		}
 
 		_options = hideSelected ? _options.filter(not(isSelected)) : _options;
 
 		/* istanbul ignore else */
-		if (
-			taggable &&
-			normalizedSearch.length &&
-			!isExistingOption(normalizedSearch)
-		) {
-			if (tagPosition === "bottom") {
+		if (taggable && normalizedSearch.length && !isExistingOption(normalizedSearch)) {
+			if (tagPosition === 'bottom') {
 				_options.push({ isTag: true, label: search });
 			} else {
 				_options.unshift({ isTag: true, label: search });
@@ -467,109 +467,91 @@
 		return _options.slice(0, optionsLimit);
 	})();
 
-	let valueKeys;
+	let valueKeys: string | any[];
 	$: valueKeys = (() => {
 		if (trackBy) {
-			return internalValue.map((element) => element[trackBy]);
+			return internalValue.map((element: { [x: string]: any }) => element[trackBy as string]);
 		} else {
 			return internalValue;
 		}
 	})();
 
-	let optionKeys;
+	let optionKeys: string | any[];
 	$: optionKeys = (() => {
 		const _options = groupValues ? flatAndStrip(options) : options;
 
-		return _options.map((element) =>
-			customLabel(element, label)?.toString().toLowerCase()
-		);
+		return _options.map((element: any) => customLabel(element, label)?.toString().toLowerCase());
 	})();
 
-	let currentOptionLabel;
+	let currentOptionLabel: any;
 	$: currentOptionLabel = multiple
 		? searchable
-			? ""
+			? ''
 			: placeholder
 		: internalValue.length
 		? getOptionLabel(internalValue[0])
 		: searchable
-		? ""
+		? ''
 		: placeholder;
 
 	//#endregion
 
 	//#region Multiselect.vue computed
 
-	let isSingleLabelVisible;
+	let isSingleLabelVisible: any;
 	$: isSingleLabelVisible =
-		(singleValue || singleValue === 0) &&
-		(!isOpen || !searchable) &&
-		!visibleValues.length;
+		(singleValue || singleValue === 0) && (!isOpen || !searchable) && !visibleValues.length;
 
-	let isPlaceholderVisible;
+	let isPlaceholderVisible: boolean;
 	$: isPlaceholderVisible = !internalValue.length && (!searchable || !isOpen);
 
-	let visibleValues;
+	let visibleValues: any[];
 	$: visibleValues = multiple ? internalValue.slice(0, limit) : [];
 
-	let singleValue;
+	let singleValue: number;
 	$: singleValue = internalValue[0];
 
-	let deselectLabelText;
-	$: deselectLabelText = showLabels ? deselectLabel : "";
+	let deselectLabelText: string;
+	$: deselectLabelText = showLabels ? deselectLabel : '';
 
-	let deselectGroupLabelText;
-	$: deselectGroupLabelText = showLabels ? deselectGroupLabel : "";
+	let deselectGroupLabelText: string;
+	$: deselectGroupLabelText = showLabels ? deselectGroupLabel : '';
 
-	let selectLabelText;
-	$: selectLabelText = showLabels ? selectLabel : "";
+	let selectLabelText: string;
+	$: selectLabelText = showLabels ? selectLabel : '';
 
-	let selectGroupLabelText;
-	$: selectGroupLabelText = showLabels ? selectGroupLabel : "";
+	let selectGroupLabelText: string;
+	$: selectGroupLabelText = showLabels ? selectGroupLabel : '';
 
-	let selectedLabelText;
-	$: selectedLabelText = showLabels ? selectedLabel : "";
+	let selectedLabelText: string;
+	$: selectedLabelText = showLabels ? selectedLabel : '';
 
-	let inputStyle;
+	let inputStyle: string;
 	$: inputStyle = (() => {
 		if (searchable || (multiple && value && value.length)) {
 			// Hide input by setting the width to 0 allowing it to receive focus
-			return isOpen
-				? "width:100%"
-				: "width:0px; position: absolute; padding: 0";
+			return isOpen ? 'width:100%' : 'width:0px; position: absolute; padding: 0';
 		}
-		return "";
+		return '';
 	})();
 
-	let contentStyle;
-	$: contentStyle = options.length
-		? "display: inline-block;"
-		: "display: block";
+	let contentStyle: string;
+	$: contentStyle = options.length ? 'display: inline-block;' : 'display: block';
 
-	let isAbove;
+	let isAbove: boolean;
 	$: isAbove = (() => {
-		if (openDirection === "above" || openDirection === "top") {
+		if (openDirection === 'above' || openDirection === 'top') {
 			return true;
-		} else if (openDirection === "below" || openDirection === "bottom") {
+		} else if (openDirection === 'below' || openDirection === 'bottom') {
 			return false;
 		} else {
-			return preferredOpenDirection === "above";
+			return preferredOpenDirection === 'above';
 		}
 	})();
 
 	let showSearchInput;
 	$: showSearchInput =
-		searchable &&
-		(hasSingleSelectedSlot && (visibleSingleValue || visibleSingleValue === 0)
-			? isOpen
-			: true);
-
-	let contentWrapperHorizontalOffset = 0
-	$: if (listBind) {
-		const rect = listBind.getBoundingClientRect()
-		contentWrapperHorizontalOffset = Math.min(screen.width - rect.x - rect.width - screenEdgeOffset, 0)
-		console.log("contentWrapperHorizontalOffset", contentWrapperHorizontalOffset)
-	}
+		searchable && (hasSingleSelectedSlot && (visibleValues || visibleValues === 0) ? isOpen : true);
 
 	//#endregion
 
@@ -580,11 +562,21 @@
 		return pointer * optionHeight;
 	})();
 
-	let visibleElements;
+	let visibleElements: number;
 	$: visibleElements = (() => {
 		return optimizedHeight / optionHeight;
 	})();
 	//#endregion
+
+	let contentWrapperHorizontalOffset = 0;
+	$: if (listBind) {
+		const rect = listBind.getBoundingClientRect();
+		contentWrapperHorizontalOffset = Math.min(
+			screen.width - rect.x - rect.width - screenEdgeOffset,
+			0
+		);
+		// console.log('contentWrapperHorizontalOffset', contentWrapperHorizontalOffset);
+	}
 
 	//#region  multiselectMixin.js watch
 
@@ -593,7 +585,7 @@
 			/* istanbul ignore else */
 			if (resetAfter && internalValue.length) {
 				setTimeout(() => {
-					search = "";
+					search = '';
 					dispatchInput(multiple ? [] : null);
 				});
 			}
@@ -601,7 +593,7 @@
 
 	$: search,
 		((s) => {
-			dispatch("search-change", s);
+			dispatch('search-change', s);
 		})(search);
 
 	//#endregion
@@ -618,11 +610,7 @@
 		})();
 	$: pointer,
 		(() => {
-			searchBind &&
-				searchBind.setAttribute(
-					"aria-activedescendant",
-					id + "-" + pointer.toString()
-				);
+			searchBind && searchBind.setAttribute('aria-activedescendant', id + '-' + pointer.toString());
 		})();
 	//#endregion
 
@@ -632,11 +620,7 @@
 	 * @returns {Object||Array||String||Integer}
 	 */
 	function getValue() {
-		return multiple
-			? internalValue
-			: internalValue.length === 0
-			? null
-			: internalValue[0];
+		return multiple ? internalValue : internalValue.length === 0 ? null : internalValue[0];
 	}
 
 	/**
@@ -644,7 +628,7 @@
 	 * @param  {Array}
 	 * @returns {Array} returns a filtered and flat options list
 	 */
-	function filterAndFlat(options, search, label) {
+	function filterAndFlat(options: any[], search: string, label: string | null) {
 		return flow(
 			filterGroups(search, label, groupValues, groupLabel, customLabel),
 			flattenOptions(groupValues, groupLabel)
@@ -656,7 +640,7 @@
 	 * @param  {Array}
 	 * @returns {Array} returns a flat options list without group labels
 	 */
-	function flatAndStrip(options) {
+	function flatAndStrip(options: any[]) {
 		return flow(flattenOptions(groupValues, groupLabel), stripGroups)(options);
 	}
 
@@ -664,7 +648,7 @@
 	 * Updates the search value
 	 * @param  {String}
 	 */
-	function updateSearch(query) {
+	function updateSearch(query: string) {
 		search = query;
 	}
 
@@ -674,7 +658,7 @@
 	 * @param  {String}
 	 * @returns {Boolean} returns true if element is available
 	 */
-	function isExistingOption(query) {
+	function isExistingOption(query: string) {
 		return !options ? false : optionKeys.indexOf(query) > -1;
 	}
 
@@ -684,7 +668,7 @@
 	 * @param  {Object||String||Integer} option passed element to check
 	 * @returns {Boolean} returns true if element is selected
 	 */
-	function isSelected(option) {
+	function isSelected(option: { [x: string]: any }) {
 		const opt = trackBy ? option[trackBy] : option;
 		return valueKeys?.indexOf(opt) > -1 ?? false;
 	}
@@ -694,7 +678,7 @@
 	 * @param  {Object||String||Integer} option passed element to check
 	 * @returns {Boolean} returns true if element is disabled
 	 */
-	function isOptionDisabled(option) {
+	function isOptionDisabled(option: { $isDisabled: any }) {
 		return !!option.$isDisabled;
 	}
 	/**
@@ -705,8 +689,8 @@
 	 * @param  {Object||String||Integer} Passed option
 	 * @returns {Object||String}
 	 */
-	function getOptionLabel(option) {
-		if (isEmpty(option)) return "";
+	function getOptionLabel(option: { isTag: any; label: any; $isLabel: any; $groupLabel: any }) {
+		if (isEmpty(option)) return '';
 		/* istanbul ignore else */
 		if (option.isTag) return option.label;
 		/* istanbul ignore else */
@@ -714,7 +698,7 @@
 
 		let _label = customLabel(option, label);
 		/* istanbul ignore else */
-		if (isEmpty(_label)) return "";
+		if (isEmpty(_label)) return '';
 		return _label;
 	}
 
@@ -726,37 +710,33 @@
 	 * @param  {Object||String||Integer} option to select/deselect
 	 * @param  {Boolean} block removing
 	 */
-	function select(option, key) {
+	function select(option: any, key?: string | undefined) {
+		console.log('click handler called');
 		/* istanbul ignore else */
 		if (option.$isLabel && groupSelect) {
 			selectGroup(option);
 			return;
 		}
-		if (
-			blockKeys.indexOf(key) !== -1 ||
-			disabled ||
-			option.$isDisabled ||
-			option.$isLabel
-		)
-			return;
+		//@ts-ignore
+		if (blockKeys.indexOf(key) !== -1 || disabled || option.$isDisabled || option.$isLabel) return;
 		/* istanbul ignore else */
 		if (max && multiple && internalValue.length === max) return;
 		/* istanbul ignore else */
-		if (key === "Tab" && !pointerDirty) return;
+		if (key === 'Tab' && !pointerDirty) return;
 
 		//this will cause each loop to rerender
 		if (option.isTag) {
-			dispatch("tag", option.label);
-			search = "";
+			dispatch('tag', option.label);
+			search = '';
 			if (closeOnSelect && !multiple) deactivate();
 		} else {
 			const _isSelected = isSelected(option);
 			if (_isSelected) {
-				if (key !== "Tab") removeElement(option);
+				if (key !== 'Tab') removeElement(option);
 				return;
 			}
 
-			dispatch("select", option);
+			dispatch('select', option);
 
 			if (multiple) {
 				dispatchInput(internalValue.concat([option]));
@@ -765,7 +745,7 @@
 			}
 
 			/* istanbul ignore else */
-			if (clearOnSelect) search = "";
+			if (clearOnSelect) search = '';
 		}
 		/* istanbul ignore else */
 		if (closeOnSelect) deactivate();
@@ -780,27 +760,28 @@
 	 *
 	 * @param  {Object||String||Integer} group to select/deselect
 	 */
-	function selectGroup(selectedGroup) {
+	function selectGroup(selectedGroup: { $groupLabel: any }) {
 		const group = options.find((option) => {
-			return option[groupLabel] === selectedGroup.$groupLabel;
+			return option[groupLabel as string] === selectedGroup.$groupLabel;
 		});
 
 		if (!group) return;
+		if (groupValues == null) return;
 
 		if (wholeGroupSelected(group)) {
-			dispatch("remove", group[groupValues]);
+			dispatch('remove', group[groupValues]);
 
 			const newValue = internalValue.filter(
-				(option) => group[groupValues].indexOf(option) === -1
+				(option: any) => group[groupValues as string].indexOf(option) === -1
 			);
 
 			dispatchInput(newValue);
 		} else {
 			const optionsToAdd = group[groupValues].filter(
-				(option) => !(isOptionDisabled(option) || isSelected(option))
+				(option: any) => !(isOptionDisabled(option) || isSelected(option))
 			);
 
-			dispatch("select", optionsToAdd);
+			dispatch('select', optionsToAdd);
 			dispatchInput(internalValue.concat(optionsToAdd));
 		}
 
@@ -813,9 +794,9 @@
 	 *
 	 * @param {Object} group to validated selected values against
 	 */
-	function wholeGroupSelected(group) {
-		return group[groupValues].every(
-			(option) => isSelected(option) || isOptionDisabled(option)
+	function wholeGroupSelected(group: { [x: string]: any[] }) {
+		return group[groupValues as string].every(
+			(option: any) => isSelected(option) || isOptionDisabled(option)
 		);
 	}
 	/**
@@ -823,8 +804,8 @@
 	 *
 	 * @param {Object} group to check for disabled values
 	 */
-	function wholeGroupDisabled(group) {
-		return group[groupValues].every(isOptionDisabled);
+	function wholeGroupDisabled(group: { [x: string]: any[] }) {
+		return group[groupValues as string].every(isOptionDisabled);
 	}
 	/**
 	 * Removes the given option from the selected options.
@@ -834,7 +815,7 @@
 	 * @param  {type} option description
 	 * @returns {type}        description
 	 */
-	function removeElement(option, shouldClose = true) {
+	function removeElement(option: { [x: string]: any; $isDisabled: any }, shouldClose = true) {
 		/* istanbul ignore else */
 		if (disabled) return;
 		/* istanbul ignore else */
@@ -846,15 +827,13 @@
 		}
 
 		const index =
-			typeof option === "object"
-				? valueKeys?.indexOf(option[trackBy])
+			typeof option === 'object'
+				? valueKeys?.indexOf(option[trackBy as string])
 				: valueKeys?.indexOf(option);
 
-		dispatch("remove", option);
+		dispatch('remove', option);
 		if (multiple) {
-			const newValue = internalValue
-				.slice(0, index)
-				.concat(internalValue.slice(index + 1));
+			const newValue = internalValue.slice(0, index).concat(internalValue.slice(index + 1));
 			dispatchInput(newValue);
 		} else {
 			dispatchInput(null);
@@ -877,13 +856,9 @@
 	 */
 	function removeLastElement() {
 		/* istanbul ignore else */
-		if (blockKeys.indexOf("Delete") !== -1) return;
+		if (blockKeys.indexOf('Delete') !== -1) return;
 		/* istanbul ignore else */
-		if (
-			search.length === 0 &&
-			Array.isArray(internalValue) &&
-			internalValue.length
-		) {
+		if (search.length === 0 && Array.isArray(internalValue) && internalValue.length) {
 			removeElement(internalValue[internalValue.length - 1], false);
 		}
 	}
@@ -909,14 +884,14 @@
 		isOpen = true;
 		/* istanbul ignore else  */
 		if (searchable) {
-			if (!preserveSearch) search = "";
+			if (!preserveSearch) search = '';
 			if (searchBind) {
 				setTimeout(() => searchBind.focus());
 			}
 		} else {
 			el.focus();
 		}
-		dispatch("open", id);
+		dispatch('open', id);
 	}
 
 	/**
@@ -932,10 +907,10 @@
 		if (searchable) {
 			searchBind && searchBind.blur();
 		} else {
-			el.blur();
+			el?.blur();
 		}
-		if (!preserveSearch) search = "";
-		dispatch("close", getValue());
+		if (!preserveSearch) search = '';
+		dispatch('close', getValue());
 	}
 
 	/**
@@ -954,7 +929,8 @@
 	 * detecting where to expand the dropdown
 	 */
 	function adjustPosition() {
-		if (typeof window === "undefined") return;
+		if (typeof window === 'undefined') return;
+		if (!el) return;
 
 		const spaceAbove = el.getBoundingClientRect().top;
 		const spaceBelow = window.innerHeight - el.getBoundingClientRect().bottom;
@@ -963,13 +939,13 @@
 		if (
 			hasEnoughSpaceBelow ||
 			spaceBelow > spaceAbove ||
-			openDirection === "below" ||
-			openDirection === "bottom"
+			openDirection === 'below' ||
+			openDirection === 'bottom'
 		) {
-			preferredOpenDirection = "below";
+			preferredOpenDirection = 'below';
 			optimizedHeight = Math.min(spaceBelow - 40, maxHeight);
 		} else {
-			preferredOpenDirection = "above";
+			preferredOpenDirection = 'above';
 			optimizedHeight = Math.min(spaceAbove - 40, maxHeight);
 		}
 	}
@@ -978,41 +954,39 @@
 
 	//#region pointerMixin.js methods
 
-	function optionHighlight(index, option, point) {
+	function optionHighlight(index: number, option: any, point: number) {
 		return (
-			(index === point && showPointer
-				? " multiselect__option--highlight "
-				: "") + (isSelected(option) ? " multiselect__option--selected " : "")
+			(index === point && showPointer ? ' multiselect__option--highlight ' : '') +
+			(isSelected(option) ? ' multiselect__option--selected ' : '')
 		);
 	}
 
-	function groupHighlight(index, selectedGroup) {
+	function groupHighlight(index: number, selectedGroup: { $isLabel: any; $groupLabel: any }) {
 		if (!groupSelect) {
 			return [
-				"multiselect__option--disabled " +
-					(selectedGroup.$isLabel ? " multiselect__option--group " : ""),
+				'multiselect__option--disabled ' +
+					(selectedGroup.$isLabel ? ' multiselect__option--group ' : '')
 			];
 		}
 
 		const group = options.find((option) => {
-			return option[groupLabel] === selectedGroup.$groupLabel;
+			return option[groupLabel as string] === selectedGroup.$groupLabel;
 		});
 
 		return group && !wholeGroupDisabled(group)
 			? [
-					" multiselect__option--group ",
+					' multiselect__option--group ',
 					{
-						" multiselect__option--highlight ":
-							index === pointer && showPointer,
+						' multiselect__option--highlight ': index === pointer && showPointer
 					},
 					{
-						" multiselect__option--group-selected ": wholeGroupSelected(group),
-					},
+						' multiselect__option--group-selected ': wholeGroupSelected(group)
+					}
 			  ]
-			: " multiselect__option--disabled ";
+			: ' multiselect__option--disabled ';
 	}
 
-	function addPointerElement(key = "Enter") {
+	function addPointerElement(key = 'Enter') {
 		/* istanbul ignore else */
 		if (filteredOptions.length > 0) {
 			select(filteredOptions[pointer], key);
@@ -1026,19 +1000,11 @@
 			pointer++;
 			let newPointerPosition = pointer * optionHeight;
 			/* istanbul ignore next */
-			if (
-				listBind.scrollTop <=
-				newPointerPosition - (visibleElements - 1) * optionHeight
-			) {
-				listBind.scrollTop =
-					newPointerPosition - (visibleElements - 1) * optionHeight;
+			if (listBind.scrollTop <= newPointerPosition - (visibleElements - 1) * optionHeight) {
+				listBind.scrollTop = newPointerPosition - (visibleElements - 1) * optionHeight;
 			}
 			/* istanbul ignore else */
-			if (
-				filteredOptions[pointer] &&
-				filteredOptions[pointer].$isLabel &&
-				!groupSelect
-			)
+			if (filteredOptions[pointer] && filteredOptions[pointer].$isLabel && !groupSelect)
 				pointerForward();
 		}
 		pointerDirty = true;
@@ -1053,20 +1019,11 @@
 				listBind.scrollTop = newPointerPosition;
 			}
 			/* istanbul ignore else */
-			if (
-				filteredOptions[pointer] &&
-				filteredOptions[pointer].$isLabel &&
-				!groupSelect
-			)
+			if (filteredOptions[pointer] && filteredOptions[pointer].$isLabel && !groupSelect)
 				pointerBackward();
 		} else {
 			/* istanbul ignore else */
-			if (
-				filteredOptions[pointer] &&
-				filteredOptions[0].$isLabel &&
-				!groupSelect
-			)
-				pointerForward();
+			if (filteredOptions[pointer] && filteredOptions[0].$isLabel && !groupSelect) pointerForward();
 		}
 		pointerDirty = true;
 	}
@@ -1087,16 +1044,12 @@
 			pointer = filteredOptions.length ? filteredOptions.length - 1 : 0;
 		}
 
-		if (
-			filteredOptions.length > 0 &&
-			filteredOptions[pointer]?.$isLabel &&
-			!groupSelect
-		) {
+		if (filteredOptions.length > 0 && filteredOptions[pointer]?.$isLabel && !groupSelect) {
 			pointerForward();
 		}
 	}
 
-	function pointerSet(index) {
+	function pointerSet(index: number) {
 		pointer = index;
 		pointerDirty = true;
 	}
@@ -1107,7 +1060,7 @@
 		/* istanbul ignore else */
 		if (!multiple && max) {
 			console.warn(
-				"[Vue-Multiselect warn]: Max prop should not be used when prop Multiple equals false."
+				'[Vue-Multiselect warn]: Max prop should not be used when prop Multiple equals false.'
 			);
 		}
 		if (preselectFirst && !internalValue.length && options.length) {
@@ -1116,20 +1069,20 @@
 	});
 	//#endregion
 
-	function handleKeyDown(e) {
-		if (e.code == "ArrowDown") pointerForward();
-		if (e.code == "ArrowUp") pointerBackward();
-		if (e.code == "Delete") removeLastElement();
+	function handleKeyDown(e: { code: string }) {
+		if (e.code == 'ArrowDown') pointerForward();
+		if (e.code == 'ArrowUp') pointerBackward();
+		if (e.code == 'Delete') removeLastElement();
 	}
 
-	function handleKeyPress(e) {
-		if (e.code == "Escape") deactivate();
-		if (e.key == "Tab") addPointerElement(e.key);
-		if (e.key == "Enter") addPointerElement(e.key);
+	function handleKeyPress(e: { code: string; key: string | undefined }) {
+		if (e.code == 'Escape') deactivate();
+		if (e.key == 'Tab') addPointerElement(e.key);
+		if (e.key == 'Enter') addPointerElement(e.key);
 	}
 
-	function tagHandleKeyPress(e) {
-		if (e.code == "Enter") removeElement(option);
+	function tagHandleKeyPress(e: { code: string }) {
+		if (e.code == 'Enter') removeElement(option);
 	}
 </script>
 
@@ -1142,28 +1095,19 @@
 	class:multiselect-sm={small}
 	class:overflow
 	on:focus={activate}
-	on:blur={searchable ? false : deactivate()}
+	on:blur={() => (searchable ? false : deactivate())}
 	on:keydown|preventDefault={handleKeyDown}
 	on:keyup|stopPropagation={handleKeyPress}
 	class="multiselect {containerClass}"
 	role="combobox"
-	aria-owns={"listbox-" + id}
+	aria-owns={'listbox-' + id}
 >
 	<slot name="caret" {toggle}>
-		<div
-			on:mousedown|preventDefault|stopPropagation={toggle}
-			class="multiselect__select"
-		/>
+		<div on:mousedown|preventDefault|stopPropagation={toggle} class="multiselect__select" />
 	</slot>
 	<slot name="clear" {search} />
 	<div bind:this={tagsBind} class="multiselect__tags">
-		<slot
-			name="selection"
-			{search}
-			remove={removeElement}
-			values={visibleValues}
-			is-open={isOpen}
-		>
+		<slot name="selection" {search} remove={removeElement} values={visibleValues} is-open={isOpen}>
 			{#if visibleValues.length > 0}
 				<div class="multiselect__tags-wrap" on:mousedown|preventDefault>
 					{#each visibleValues as option, index}
@@ -1183,9 +1127,7 @@
 			{/if}
 			{#if internalValue && internalValue.length > limit}
 				<slot name="limit">
-					<strong class="multiselect__strong"
-						>{limitText(internalValue.length - limit)}</strong
-					>
+					<strong class="multiselect__strong">{limitText(internalValue.length - limit)}</strong>
 				</slot>
 			{/if}
 		</slot>
@@ -1215,7 +1157,7 @@
 				on:keydown|self|stopPropagation={handleKeyDown}
 				on:keyup|stopPropagation={handleKeyPress}
 				class="multiselect__input {$$restProps.inputClass}"
-				aria-controls={"listbox-" + id}
+				aria-controls={'listbox-' + id}
 			/>
 			<!-- content here -->
 		{/if}
@@ -1228,10 +1170,7 @@
 		{/if}
 
 		{#if isPlaceholderVisible}
-			<span
-				class="multiselect__placeholder"
-				on:mousedown|preventDefault={toggle}
-			>
+			<span class="multiselect__placeholder" on:mousedown|preventDefault={toggle}>
 				<slot name="placeholder">
 					{placeholder}
 				</slot>
@@ -1249,19 +1188,13 @@
 			transition:fade={{ duration: 75 }}
 			on:focus={activate}
 		>
-			<ul
-				id={"listbox-" + id}
-				class="multiselect__content"
-				style={contentStyle}
-				role="listbox"
-			>
+			<ul class="multiselect__content" style={contentStyle} role="listbox" id={'listbox-' + id}>
 				<slot name="beforeList" />
 				{#if multiple && max === internalValue.length}
 					<li>
 						<span class="multiselect__option">
 							<slot name="maxElements"
-								>Maximum of {max} options selected. First remove a selected option
-								to select another.</slot
+								>Maximum of {max} options selected. First remove a selected option to select another.</slot
 							>
 						</span>
 					</li>
@@ -1271,22 +1204,21 @@
 					{#each filteredOptions as option, index}
 						<li
 							class="multiselect__element"
-							id={id + "-" + index}
-							role={!(option && (option.$isLabel || option.$isDisabled))
-								? "option"
-								: null}
+							id={id + '-' + index}
+							role={!(option && (option.$isLabel || option.$isDisabled)) ? 'option' : null}
 						>
 							{#if !(option && (option.$isLabel || option.$isDisabled))}
+								<!-- svelte-ignore a11y-click-events-have-key-events -->
+								<!-- svelte-ignore a11y-no-static-element-interactions -->
+								<!-- Mouse down is used to prevent bluring before selecting option -->
 								<span
-									class={optionHighlight(index, option, pointer) +
-										"  multiselect__option "}
+									class={optionHighlight(index, option, pointer) + '  multiselect__option '}
 									on:click|stopPropagation={() => select(option)}
 									on:mouseenter={() => pointerSet(index)}
-									data-select={option && option.isTag
-										? tagPlaceholder
-										: selectLabelText}
+									data-select={option && option.isTag ? tagPlaceholder : selectLabelText}
 									data-selected={selectedLabelText}
 									data-deselect={deselectLabelText}
+									on:mousedown|preventDefault
 								>
 									<slot name="option" {option} {search} {index}>
 										<span>{getOptionLabel(option)}</span>
@@ -1295,10 +1227,11 @@
 							{/if}
 
 							{#if option && (option.$isLabel || option.$isDisabled)}
+								<!-- svelte-ignore a11y-no-static-element-interactions -->
 								<span
 									data-select={groupSelect && selectGroupLabelText}
 									data-deselect={groupSelect && deselectGroupLabelText}
-									class={groupHighlight(index, option) + " multiselect__option"}
+									class={groupHighlight(index, option) + ' multiselect__option'}
 									on:mouseenter|self={() => groupSelect && pointerSet(index)}
 									on:mousedown|preventDefault={() => selectGroup(option)}
 								>
@@ -1337,545 +1270,5 @@
 </div>
 
 <style lang="scss">
-	:global() {
-		fieldset[disabled] .multiselect {
-			pointer-events: none;
-		}
-
-		.multiselect__spinner {
-			position: absolute;
-			right: 1px;
-			top: 1px;
-			width: 48px;
-			height: 35px;
-			background: #fff;
-			display: block;
-		}
-
-		.multiselect__spinner:before,
-		.multiselect__spinner:after {
-			position: absolute;
-			content: "";
-			top: 50%;
-			left: 50%;
-			margin: -8px 0 0 -8px;
-			width: 16px;
-			height: 16px;
-			border-radius: 100%;
-			border-color: #41b883 transparent transparent;
-			border-style: solid;
-			border-width: 2px;
-			box-shadow: 0 0 0 1px transparent;
-		}
-
-		.multiselect__spinner:before {
-			animation: spinning 2.4s cubic-bezier(0.41, 0.26, 0.2, 0.62);
-			animation-iteration-count: infinite;
-		}
-
-		.multiselect__spinner:after {
-			animation: spinning 2.4s cubic-bezier(0.51, 0.09, 0.21, 0.8);
-			animation-iteration-count: infinite;
-		}
-
-		.multiselect__loading-enter-active,
-		.multiselect__loading-leave-active {
-			transition: opacity 0.4s ease-in-out;
-			opacity: 1;
-		}
-
-		.multiselect__loading-enter,
-		.multiselect__loading-leave-active {
-			opacity: 0;
-		}
-
-		.multiselect,
-		.multiselect__input,
-		.multiselect__single {
-			font-family: inherit;
-			font-size: 14px;
-			touch-action: manipulation;
-		}
-
-		.multiselect {
-			box-sizing: content-box;
-			display: block;
-			position: relative;
-			width: 100%;
-			min-height: 40px;
-			text-align: left;
-			color: #35495e;
-		}
-
-		.multiselect * {
-			box-sizing: border-box;
-		}
-
-		.multiselect:focus {
-			outline: none;
-		}
-
-		.multiselect--disabled {
-			background: #ededed;
-			pointer-events: none;
-			opacity: 0.6;
-		}
-
-		.multiselect--active {
-			z-index: 50;
-		}
-
-		.multiselect--active:not(.multiselect--above) .multiselect__current,
-		.multiselect--active:not(.multiselect--above) .multiselect__input,
-		.multiselect--active:not(.multiselect--above) .multiselect__tags {
-			border-bottom-left-radius: 0;
-			border-bottom-right-radius: 0;
-		}
-
-		.multiselect--active .multiselect__select {
-			transform: rotateZ(180deg);
-		}
-
-		.multiselect--above.multiselect--active .multiselect__current,
-		.multiselect--above.multiselect--active .multiselect__input,
-		.multiselect--above.multiselect--active .multiselect__tags {
-			border-top-left-radius: 0;
-			border-top-right-radius: 0;
-		}
-
-		.multiselect__input,
-		.multiselect__single {
-			position: relative;
-			display: inline-block;
-			min-height: 20px;
-			line-height: 20px;
-			border: none;
-			border-radius: 5px;
-			background: #fff;
-			padding: 0 0 0 5px;
-			width: calc(100%);
-			transition: border 0.1s ease;
-			box-sizing: border-box;
-			margin-bottom: 8px;
-			vertical-align: top;
-		}
-
-		.multiselect__input::placeholder {
-			color: #35495e;
-		}
-
-		.multiselect__tag ~ .multiselect__input,
-		.multiselect__tag ~ .multiselect__single {
-			width: auto;
-		}
-
-		.multiselect__input:hover,
-		.multiselect__single:hover {
-			border-color: #cfcfcf;
-		}
-
-		.multiselect__input:focus,
-		.multiselect__single:focus {
-			border-color: #a8a8a8;
-			outline: none;
-		}
-
-		.multiselect__single {
-			padding-left: 5px;
-			margin-bottom: 8px;
-		}
-
-		.multiselect__tags-wrap {
-			display: inline;
-		}
-
-		.multiselect__tags {
-			min-height: 40px;
-			display: block;
-			padding: 8px 40px 0 8px;
-			border-radius: 5px;
-			border: 1px solid #e8e8e8;
-			background: #fff;
-			font-size: 14px;
-		}
-
-		.multiselect__tag {
-			position: relative;
-			display: inline-block;
-			padding: 4px 26px 4px 10px;
-			border-radius: 5px;
-			margin-right: 10px;
-			color: #fff;
-			line-height: 1;
-			background: #41b883;
-			margin-bottom: 5px;
-			white-space: nowrap;
-			overflow: hidden;
-			max-width: 100%;
-			text-overflow: ellipsis;
-		}
-
-		.multiselect__tag-icon {
-			cursor: pointer;
-			margin-left: 7px;
-			position: absolute;
-			right: 0;
-			top: 0;
-			bottom: 0;
-			font-weight: 700;
-			font-style: initial;
-			width: 22px;
-			text-align: center;
-			line-height: 22px;
-			transition: all 0.2s ease;
-			border-radius: 5px;
-		}
-
-		.multiselect__tag-icon:after {
-			content: "×";
-			color: #266d4d;
-			font-size: 14px;
-		}
-
-		.multiselect__tag-icon:focus,
-		.multiselect__tag-icon:hover {
-			background: #369a6e;
-		}
-
-		.multiselect__tag-icon:focus:after,
-		.multiselect__tag-icon:hover:after {
-			color: white;
-		}
-
-		.multiselect__current {
-			line-height: 16px;
-			min-height: 40px;
-			box-sizing: border-box;
-			display: block;
-			overflow: hidden;
-			padding: 8px 12px 0;
-			padding-right: 30px;
-			white-space: nowrap;
-			margin: 0;
-			text-decoration: none;
-			border-radius: 5px;
-			border: 1px solid #e8e8e8;
-			cursor: pointer;
-		}
-
-		.multiselect__select {
-			line-height: 16px;
-			display: block;
-			position: absolute;
-			box-sizing: border-box;
-			width: 40px;
-			height: 38px;
-			right: 1px;
-			top: 1px;
-			padding: 4px 8px;
-			margin: 0;
-			text-decoration: none;
-			text-align: center;
-			cursor: pointer;
-			transition: transform 0.2s ease;
-		}
-
-		.multiselect__select:before {
-			position: relative;
-			right: 0;
-			top: 65%;
-			color: #999;
-			margin-top: 4px;
-			border-style: solid;
-			border-width: 5px 5px 0 5px;
-			border-color: #999999 transparent transparent transparent;
-			content: "";
-		}
-
-		.multiselect__placeholder {
-			color: #adadad;
-			display: inline-block;
-			margin-bottom: 10px;
-			padding-top: 2px;
-			line-height: 1.15;
-		}
-
-		.multiselect--active .multiselect__placeholder {
-			display: none;
-		}
-
-		.multiselect__content-wrapper {
-			position: absolute;
-			display: block;
-			background: #fff;
-			width: 100%;
-			max-height: 240px;
-			overflow: auto;
-			border: 1px solid #e8e8e8;
-			border-top: none;
-			border-bottom-left-radius: 5px;
-			border-bottom-right-radius: 5px;
-			z-index: 50;
-			-webkit-overflow-scrolling: touch;
-		}
-
-		.multiselect__content {
-			list-style: none;
-			display: inline-block;
-			padding: 0;
-			margin: 0;
-			min-width: 100%;
-			vertical-align: top;
-		}
-
-		.multiselect--above .multiselect__content-wrapper {
-			bottom: 100%;
-			border-bottom-left-radius: 0;
-			border-bottom-right-radius: 0;
-			border-top-left-radius: 5px;
-			border-top-right-radius: 5px;
-			border-bottom: none;
-			border-top: 1px solid #e8e8e8;
-		}
-
-		.multiselect__content::webkit-scrollbar {
-			display: none;
-		}
-
-		.multiselect__element {
-			display: block;
-		}
-
-		.multiselect__option {
-			display: block;
-			padding: 12px;
-			min-height: 40px;
-			line-height: 16px;
-			text-decoration: none;
-			text-transform: none;
-			vertical-align: middle;
-			position: relative;
-			cursor: pointer;
-			white-space: nowrap;
-		}
-
-		.multiselect__option:after {
-			top: 0;
-			right: 0;
-			position: absolute;
-			line-height: 40px;
-			padding-right: 12px;
-			padding-left: 20px;
-			font-size: 13px;
-		}
-
-		.multiselect__option--highlight {
-			background: #41b883;
-			outline: none;
-			color: white;
-		}
-
-		.multiselect__option--highlight:after {
-			content: attr(data-select);
-			background: #41b883;
-			color: white;
-		}
-
-		.multiselect__option--selected {
-			background: #f3f3f3;
-			color: #35495e;
-			font-weight: bold;
-		}
-
-		.multiselect__option--selected:after {
-			content: attr(data-selected);
-			color: silver;
-		}
-
-		.multiselect__option--selected.multiselect__option--highlight {
-			background: #ff6a6a;
-			color: #fff;
-		}
-
-		.multiselect__option--selected.multiselect__option--highlight:after {
-			background: #ff6a6a;
-			content: attr(data-deselect);
-			color: #fff;
-		}
-
-		.multiselect--disabled .multiselect__current,
-		.multiselect--disabled .multiselect__select {
-			background: #ededed;
-			color: #a6a6a6;
-		}
-
-		.multiselect__option--disabled {
-			background: #ededed !important;
-			color: #a6a6a6 !important;
-			cursor: text;
-			pointer-events: none;
-		}
-
-		.multiselect__option--group {
-			background: #ededed;
-			color: #35495e;
-		}
-
-		.multiselect__option--group.multiselect__option--highlight {
-			background: #35495e;
-			color: #fff;
-		}
-
-		.multiselect__option--group.multiselect__option--highlight:after {
-			background: #35495e;
-		}
-
-		.multiselect__option--disabled.multiselect__option--highlight {
-			background: #dedede;
-		}
-
-		.multiselect__option--group-selected.multiselect__option--highlight {
-			background: #ff6a6a;
-			color: #fff;
-		}
-
-		.multiselect__option--group-selected.multiselect__option--highlight:after {
-			background: #ff6a6a;
-			content: attr(data-deselect);
-			color: #fff;
-		}
-
-		.multiselect-enter-active,
-		.multiselect-leave-active {
-			transition: all 0.15s ease;
-		}
-
-		.multiselect-enter,
-		.multiselect-leave-active {
-			opacity: 0;
-		}
-
-		.multiselect__strong {
-			margin-bottom: 8px;
-			line-height: 20px;
-			display: inline-block;
-			vertical-align: top;
-		}
-
-		*[dir="rtl"] .multiselect {
-			text-align: right;
-		}
-
-		*[dir="rtl"] .multiselect__select {
-			right: auto;
-			left: 1px;
-		}
-
-		*[dir="rtl"] .multiselect__tags {
-			padding: 8px 8px 0px 40px;
-		}
-
-		*[dir="rtl"] .multiselect__content {
-			text-align: right;
-		}
-
-		*[dir="rtl"] .multiselect__option:after {
-			right: auto;
-			left: 0;
-		}
-
-		*[dir="rtl"] .multiselect__clear {
-			right: auto;
-			left: 12px;
-		}
-
-		*[dir="rtl"] .multiselect__spinner {
-			right: auto;
-			left: 1px;
-		}
-
-		@keyframes spinning {
-			from {
-				transform: rotate(0);
-			}
-			to {
-				transform: rotate(2turn);
-			}
-		}
-
-		.multiselect-sm {
-			//! setting Multiselect height to 31 px to be in line with other sm inputs
-			&.multiselect {
-				min-height: 31px !important;
-			}
-
-			.multiselect,
-			.multiselect__input,
-			.multiselect__single {
-				font-size: 14px;
-			}
-
-			.multiselect__tags {
-				min-height: 31px !important;
-				padding: 4px 28px 0 4px !important;
-			}
-
-			.multiselect__select {
-				height: 31px !important;
-				width: 30px !important;
-			}
-
-			.multiselect__single {
-				margin-bottom: 4px !important;
-				padding-left: 4px !important;
-			}
-
-			.multiselect__input {
-				margin-bottom: 4px !important;
-			}
-
-			.multiselect__placeholder {
-				padding-top: 0 !important;
-				margin-bottom: 4px !important;
-			}
-
-			.multiselect__option {
-				min-height: 25px !important;
-				padding: 4px 8px !important;
-				line-height: 23px !important;
-			}
-
-			.multiselect__current {
-				min-height: 31px !important;
-			}
-
-			.multiselect__option:after {
-				line-height: 31px !important;
-			}
-
-			.multiselect__tag {
-				margin-bottom: 0 !important;
-				padding: 3px 26px 3px 10px !important;
-				margin-right: 5px !important;
-			}
-
-			.multiselect__tag-icon {
-				line-height: 19px !important;
-			}
-		}
-
-		.overflow.multiselect {
-			//https://github.com/shentao/vue-multiselect/issues/832#issuecomment-589858818
-			.multiselect__content-wrapper {
-				min-width: 100%;
-				width: auto;
-				border: none;
-				box-shadow: 4px 4px 10px 0 rgba(0, 0, 0, 0.1);
-			}
-
-			.multiselect--active .multiselect__tags {
-				border-bottom: none;
-			}
-		}
-	}
+	@import './style.scss';
 </style>
