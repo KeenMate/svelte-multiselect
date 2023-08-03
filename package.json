@@ -1,6 +1,6 @@
 {
-	"name": "svelte-multiselect",
-	"version": "0.0.1",
+	"name": "@keenmate/svelte-multiselect",
+	"version": "0.0.2",
 	"scripts": {
 		"dev": "vite dev",
 		"build": "vite build && npm run package",
@@ -12,6 +12,10 @@
 		"lint": "prettier --plugin-search-dir . --check . && eslint .",
 		"format": "prettier --plugin-search-dir . --write ."
 	},
+	"publishConfig": {
+		"registry": "https://npm.pkg.github.com"
+	},
+	"repository": "https://github.com/keenmate/svelte-multiselect",
 	"exports": {
 		".": {
 			"types": "./dist/index.d.ts",

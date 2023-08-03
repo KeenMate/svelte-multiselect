@@ -1,23 +1,24 @@
 <script lang="ts">
-	// @ts-nocheck
-
 	import { fade } from 'svelte/transition';
 	import { onMount, createEventDispatcher } from 'svelte';
-	import { isEmpty } from './helpers.ts';
+	import { isEmpty, not } from './helpers.js';
 
 	let dispatch = createEventDispatcher();
 	//TODO find out what html element is refered by $el
-	let el, tagsBind, searchBind, listBind;
+	let el: HTMLDivElement | null | undefined,
+		tagsBind,
+		searchBind: HTMLInputElement,
+		listBind: HTMLDivElement;
 
 	export let hasSingleSelectedSlot = false;
 
 	/** this is fix for vue v-model that automatically updates value when input is emitted	 */
-	function dispatchInput(val) {
+	function dispatchInput(val: any[] | null) {
 		dispatch('input', val);
 		value = val;
 	}
 
-	function includes(str, query) {
+	function includes(str: string | boolean | null | undefined, query: string) {
 		/* istanbul ignore else */
 		if (str === undefined) str = 'undefined';
 		if (str === null) str = 'null';
@@ -26,55 +27,74 @@
 		return text.indexOf(query.trim()) !== -1;
 	}
 
-	function filterOptions(options, search, label, _customLabel) {
-		return options.filter((option) => includes(_customLabel(option, label), search));
+	function filterOptions(
+		options: any[],
+		search: string,
+		label: string | null,
+		_customLabel: { (option: any, label: string): any; (arg0: any, arg1: any): any }
+	) {
+		return options.filter((option: any) => includes(_customLabel(option, label), search));
 	}
 
-	function stripGroups(options) {
-		return options.filter((option) => !option.$isLabel);
+	function stripGroups(options: any[]) {
+		return options.filter((option: { $isLabel: any }) => !option.$isLabel);
 	}
 
-	function flattenOptions(values, label) {
-		return (options) =>
-			options.reduce((prev, curr) => {
+	function flattenOptions(values: string | null, label: string | number | null) {
+		return (options: any[]) =>
+			options.reduce(
+				(prev: { $groupLabel: any; $isLabel: boolean }[], curr: { [x: string]: any }) => {
+					/* istanbul ignore else */
+					if (curr[values as string] && curr[values as string].length) {
+						prev.push({
+							$groupLabel: curr[label as string],
+							$isLabel: true
+						});
+						return prev.concat(curr[values as string]);
+					}
+					return prev;
+				},
+				[]
+			);
+	}
+
+	function filterGroups(
+		search: any,
+		label: any,
+		values: string | number | null,
+		groupLabel: string | number | null,
+		_customLabel: (option: any, label: string) => any
+	) {
+		return (groups: any[]) =>
+			groups.map((group: { [x: string]: any }) => {
 				/* istanbul ignore else */
-				if (curr[values] && curr[values].length) {
-					prev.push({
-						$groupLabel: curr[label],
-						$isLabel: true
-					});
-					return prev.concat(curr[values]);
-				}
-				return prev;
-			}, []);
-	}
-
-	function filterGroups(search, label, values, groupLabel, _customLabel) {
-		return (groups) =>
-			groups.map((group) => {
-				/* istanbul ignore else */
-				if (!group[values]) {
+				if (!group[values as string]) {
 					console.warn(
 						`Options passed to vue-multiselect do not contain groups, despite the config.`
 					);
 					return [];
 				}
-				const groupOptions = filterOptions(group[values], search, label, _customLabel);
+				const groupOptions = filterOptions(group[values as string], search, label, _customLabel);
 
 				return groupOptions.length
 					? {
-							[groupLabel]: group[groupLabel],
-							[values]: groupOptions
+							[groupLabel as string]: group[groupLabel as string],
+							[values as string]: groupOptions
 					  }
 					: [];
 			});
 	}
 
-	const flow =
-		(...fns) =>
-		(x) =>
-			fns.reduce((v, f) => f(v), x);
-	//#endregion
+	const flow = (
+		...fns: {
+			(groups: any): any;
+			(options: any): any;
+			(options: any): any;
+			(options: any): any;
+		}[]
+	) => {
+		return (x: any) => fns.reduce((v, f) => f(v), x);
+	}; //#endregion
 
 	//#region multiselectMixin.js props
 
@@ -91,7 +111,7 @@
 	 * If `labal` prop is passed, label will equal option['label']
 	 * @type {Array}
 	 */
-	export let options = [];
+	export let options: any[] = [];
 
 	/**
 	 * Equivalent to the `multiple` attribute on a `<select>` input.
@@ -104,21 +124,21 @@
 	 * Presets the selected options value.
 	 * @type {Object||Array||String||Integer}
 	 */
-	export let value = [];
+	export let value: any = [];
 
 	/**
 	 * Key to compare objects
 	 * @default 'id'
 	 * @type {String}
 	 */
-	export let trackBy = null;
+	export let trackBy: string | null = null;
 
 	/**
 	 * Label to look for in option Object
 	 * @default 'label'
 	 * @type {String}
 	 */
-	export let label = null;
+	export let label: string | null = null;
 
 	/**
 	 * Enable/disable search in options
@@ -175,7 +195,7 @@
 	 * @default false
 	 * @type {Function}
 	 */
-	export let customLabel = (option, label) => {
+	export let customLabel = (option: any, label: string | null) => {
 		if (isEmpty(option)) return '';
 		return label ? option[label] : option;
 	};
@@ -215,8 +235,9 @@
 	 * Useful for identifying events origin.
 	 * @default null
 	 * @type {String|Integer}
+	 * @deprecated
 	 */
-	export let id = null;
+	export let id: string | null = null;
 
 	/**
 	 * Limits the options displayed in the dropdown
@@ -229,18 +250,18 @@
 	/**
 	 * Name of the property containing
 	 * the group values
-	 * @default 1000
+	 * @default null
 	 * @type {String}
 	 */
-	export let groupValues = null;
+	export let groupValues: string | null = null;
 
 	/**
 	 * Name of the property containing
 	 * the group label
-	 * @default 1000
+	 * @default null
 	 * @type {String}
 	 */
-	export let groupLabel = null;
+	export let groupLabel: string | null = null;
 
 	/**
 	 * Allow to select all group values
@@ -256,7 +277,7 @@
 	 * @default 1000
 	 * @type {String}
 	 */
-	export let blockKeys = [];
+	export let blockKeys: string[] = [];
 
 	/**
 	 * Prevent from wiping up the search value
@@ -337,7 +358,7 @@
 	 * @param {Int} count Number of elements more than limit
 	 * @type {Function}
 	 */
-	export let limitText = (count) => `and ${count} more`;
+	export let limitText = (count: number) => `and ${count} more`;
 	/**
 	 * Set true to trigger the loading spinner.
 	 * @default False
@@ -406,11 +427,11 @@
 	//#endregion
 
 	//#region multiselectMixin.js computed
-	let internalValue;
+	let internalValue: any[];
 
 	$: internalValue = value || value === 0 ? (Array.isArray(value) ? value : [value]) : [];
 
-	let filteredOptions;
+	let filteredOptions: string | ArrayLike<any>;
 	$: filteredOptions = (() => {
 		const _search = search || '';
 		const normalizedSearch = _search.toLowerCase().trim();
@@ -440,23 +461,23 @@
 		return _options.slice(0, optionsLimit);
 	})();
 
-	let valueKeys;
+	let valueKeys: string | any[];
 	$: valueKeys = (() => {
 		if (trackBy) {
-			return internalValue.map((element) => element[trackBy]);
+			return internalValue.map((element: { [x: string]: any }) => element[trackBy as string]);
 		} else {
 			return internalValue;
 		}
 	})();
 
-	let optionKeys;
+	let optionKeys: string | any[];
 	$: optionKeys = (() => {
 		const _options = groupValues ? flatAndStrip(options) : options;
 
-		return _options.map((element) => customLabel(element, label)?.toString().toLowerCase());
+		return _options.map((element: any) => customLabel(element, label)?.toString().toLowerCase());
 	})();
 
-	let currentOptionLabel;
+	let currentOptionLabel: any;
 	$: currentOptionLabel = multiple
 		? searchable
 			? ''
@@ -471,35 +492,35 @@
 
 	//#region Multiselect.vue computed
 
-	let isSingleLabelVisible;
+	let isSingleLabelVisible: any;
 	$: isSingleLabelVisible =
 		(singleValue || singleValue === 0) && (!isOpen || !searchable) && !visibleValues.length;
 
-	let isPlaceholderVisible;
+	let isPlaceholderVisible: boolean;
 	$: isPlaceholderVisible = !internalValue.length && (!searchable || !isOpen);
 
-	let visibleValues;
+	let visibleValues: any[];
 	$: visibleValues = multiple ? internalValue.slice(0, limit) : [];
 
-	let singleValue;
+	let singleValue: number;
 	$: singleValue = internalValue[0];
 
-	let deselectLabelText;
+	let deselectLabelText: string;
 	$: deselectLabelText = showLabels ? deselectLabel : '';
 
-	let deselectGroupLabelText;
+	let deselectGroupLabelText: string;
 	$: deselectGroupLabelText = showLabels ? deselectGroupLabel : '';
 
-	let selectLabelText;
+	let selectLabelText: string;
 	$: selectLabelText = showLabels ? selectLabel : '';
 
-	let selectGroupLabelText;
+	let selectGroupLabelText: string;
 	$: selectGroupLabelText = showLabels ? selectGroupLabel : '';
 
-	let selectedLabelText;
+	let selectedLabelText: string;
 	$: selectedLabelText = showLabels ? selectedLabel : '';
 
-	let inputStyle;
+	let inputStyle: string;
 	$: inputStyle = (() => {
 		if (searchable || (multiple && value && value.length)) {
 			// Hide input by setting the width to 0 allowing it to receive focus
@@ -508,10 +529,10 @@
 		return '';
 	})();
 
-	let contentStyle;
+	let contentStyle: string;
 	$: contentStyle = options.length ? 'display: inline-block;' : 'display: block';
 
-	let isAbove;
+	let isAbove: boolean;
 	$: isAbove = (() => {
 		if (openDirection === 'above' || openDirection === 'top') {
 			return true;
@@ -524,8 +545,7 @@
 
 	let showSearchInput;
 	$: showSearchInput =
-		searchable &&
-		(hasSingleSelectedSlot && (visibleSingleValue || visibleSingleValue === 0) ? isOpen : true);
+		searchable && (hasSingleSelectedSlot && (visibleValues || visibleValues === 0) ? isOpen : true);
 
 	//#endregion
 
@@ -536,7 +556,7 @@
 		return pointer * optionHeight;
 	})();
 
-	let visibleElements;
+	let visibleElements: number;
 	$: visibleElements = (() => {
 		return optimizedHeight / optionHeight;
 	})();
@@ -592,7 +612,7 @@
 	 * @param  {Array}
 	 * @returns {Array} returns a filtered and flat options list
 	 */
-	function filterAndFlat(options, search, label) {
+	function filterAndFlat(options: any[], search: string, label: string | null) {
 		return flow(
 			filterGroups(search, label, groupValues, groupLabel, customLabel),
 			flattenOptions(groupValues, groupLabel)
@@ -604,7 +624,7 @@
 	 * @param  {Array}
 	 * @returns {Array} returns a flat options list without group labels
 	 */
-	function flatAndStrip(options) {
+	function flatAndStrip(options: any[]) {
 		return flow(flattenOptions(groupValues, groupLabel), stripGroups)(options);
 	}
 
@@ -612,7 +632,7 @@
 	 * Updates the search value
 	 * @param  {String}
 	 */
-	function updateSearch(query) {
+	function updateSearch(query: string) {
 		search = query;
 	}
 
@@ -622,7 +642,7 @@
 	 * @param  {String}
 	 * @returns {Boolean} returns true if element is available
 	 */
-	function isExistingOption(query) {
+	function isExistingOption(query: string) {
 		return !options ? false : optionKeys.indexOf(query) > -1;
 	}
 
@@ -632,7 +652,7 @@
 	 * @param  {Object||String||Integer} option passed element to check
 	 * @returns {Boolean} returns true if element is selected
 	 */
-	function isSelected(option) {
+	function isSelected(option: { [x: string]: any }) {
 		const opt = trackBy ? option[trackBy] : option;
 		return valueKeys?.indexOf(opt) > -1 ?? false;
 	}
@@ -642,7 +662,7 @@
 	 * @param  {Object||String||Integer} option passed element to check
 	 * @returns {Boolean} returns true if element is disabled
 	 */
-	function isOptionDisabled(option) {
+	function isOptionDisabled(option: { $isDisabled: any }) {
 		return !!option.$isDisabled;
 	}
 	/**
@@ -653,7 +673,7 @@
 	 * @param  {Object||String||Integer} Passed option
 	 * @returns {Object||String}
 	 */
-	function getOptionLabel(option) {
+	function getOptionLabel(option: { isTag: any; label: any; $isLabel: any; $groupLabel: any }) {
 		if (isEmpty(option)) return '';
 		/* istanbul ignore else */
 		if (option.isTag) return option.label;
@@ -674,13 +694,14 @@
 	 * @param  {Object||String||Integer} option to select/deselect
 	 * @param  {Boolean} block removing
 	 */
-	function select(option, key) {
+	function select(option: any, key?: string | undefined) {
 		console.log('click handler called');
 		/* istanbul ignore else */
 		if (option.$isLabel && groupSelect) {
 			selectGroup(option);
 			return;
 		}
+		//@ts-ignore
 		if (blockKeys.indexOf(key) !== -1 || disabled || option.$isDisabled || option.$isLabel) return;
 		/* istanbul ignore else */
 		if (max && multiple && internalValue.length === max) return;
@@ -723,22 +744,25 @@
 	 *
 	 * @param  {Object||String||Integer} group to select/deselect
 	 */
-	function selectGroup(selectedGroup) {
+	function selectGroup(selectedGroup: { $groupLabel: any }) {
 		const group = options.find((option) => {
-			return option[groupLabel] === selectedGroup.$groupLabel;
+			return option[groupLabel as string] === selectedGroup.$groupLabel;
 		});
 
 		if (!group) return;
+		if (groupValues == null) return;
 
 		if (wholeGroupSelected(group)) {
 			dispatch('remove', group[groupValues]);
 
-			const newValue = internalValue.filter((option) => group[groupValues].indexOf(option) === -1);
+			const newValue = internalValue.filter(
+				(option: any) => group[groupValues as string].indexOf(option) === -1
+			);
 
 			dispatchInput(newValue);
 		} else {
 			const optionsToAdd = group[groupValues].filter(
-				(option) => !(isOptionDisabled(option) || isSelected(option))
+				(option: any) => !(isOptionDisabled(option) || isSelected(option))
 			);
 
 			dispatch('select', optionsToAdd);
@@ -754,16 +778,18 @@
 	 *
 	 * @param {Object} group to validated selected values against
 	 */
-	function wholeGroupSelected(group) {
-		return group[groupValues].every((option) => isSelected(option) || isOptionDisabled(option));
+	function wholeGroupSelected(group: { [x: string]: any[] }) {
+		return group[groupValues as string].every(
+			(option: any) => isSelected(option) || isOptionDisabled(option)
+		);
 	}
 	/**
 	 * Helper to identify if all values in a group are disabled
 	 *
 	 * @param {Object} group to check for disabled values
 	 */
-	function wholeGroupDisabled(group) {
-		return group[groupValues].every(isOptionDisabled);
+	function wholeGroupDisabled(group: { [x: string]: any[] }) {
+		return group[groupValues as string].every(isOptionDisabled);
 	}
 	/**
 	 * Removes the given option from the selected options.
@@ -773,7 +799,7 @@
 	 * @param  {type} option description
 	 * @returns {type}        description
 	 */
-	function removeElement(option, shouldClose = true) {
+	function removeElement(option: { [x: string]: any; $isDisabled: any }, shouldClose = true) {
 		/* istanbul ignore else */
 		if (disabled) return;
 		/* istanbul ignore else */
@@ -785,7 +811,9 @@
 		}
 
 		const index =
-			typeof option === 'object' ? valueKeys?.indexOf(option[trackBy]) : valueKeys?.indexOf(option);
+			typeof option === 'object'
+				? valueKeys?.indexOf(option[trackBy as string])
+				: valueKeys?.indexOf(option);
 
 		dispatch('remove', option);
 		if (multiple) {
@@ -863,7 +891,7 @@
 		if (searchable) {
 			searchBind && searchBind.blur();
 		} else {
-			el.blur();
+			el?.blur();
 		}
 		if (!preserveSearch) search = '';
 		dispatch('close', getValue());
@@ -886,6 +914,7 @@
 	 */
 	function adjustPosition() {
 		if (typeof window === 'undefined') return;
+		if (!el) return;
 
 		const spaceAbove = el.getBoundingClientRect().top;
 		const spaceBelow = window.innerHeight - el.getBoundingClientRect().bottom;
@@ -909,14 +938,14 @@
 
 	//#region pointerMixin.js methods
 
-	function optionHighlight(index, option, point) {
+	function optionHighlight(index: number, option: any, point: number) {
 		return (
 			(index === point && showPointer ? ' multiselect__option--highlight ' : '') +
 			(isSelected(option) ? ' multiselect__option--selected ' : '')
 		);
 	}
 
-	function groupHighlight(index, selectedGroup) {
+	function groupHighlight(index: number, selectedGroup: { $isLabel: any; $groupLabel: any }) {
 		if (!groupSelect) {
 			return [
 				'multiselect__option--disabled ' +
@@ -925,7 +954,7 @@
 		}
 
 		const group = options.find((option) => {
-			return option[groupLabel] === selectedGroup.$groupLabel;
+			return option[groupLabel as string] === selectedGroup.$groupLabel;
 		});
 
 		return group && !wholeGroupDisabled(group)
@@ -1004,7 +1033,7 @@
 		}
 	}
 
-	function pointerSet(index) {
+	function pointerSet(index: number) {
 		pointer = index;
 		pointerDirty = true;
 	}
@@ -1024,19 +1053,19 @@
 	});
 	//#endregion
 
-	function handleKeyDown(e) {
+	function handleKeyDown(e: { code: string }) {
 		if (e.code == 'ArrowDown') pointerForward();
 		if (e.code == 'ArrowUp') pointerBackward();
 		if (e.code == 'Delete') removeLastElement();
 	}
 
-	function handleKeyPress(e) {
+	function handleKeyPress(e: { code: string; key: string | undefined }) {
 		if (e.code == 'Escape') deactivate();
 		if (e.key == 'Tab') addPointerElement(e.key);
 		if (e.key == 'Enter') addPointerElement(e.key);
 	}
 
-	function tagHandleKeyPress(e) {
+	function tagHandleKeyPress(e: { code: string }) {
 		if (e.code == 'Enter') removeElement(option);
 	}
 </script>
@@ -1050,7 +1079,7 @@
 	class:multiselect-sm={small}
 	class:overflow
 	on:focus={activate}
-	on:blur={searchable ? false : deactivate()}
+	on:blur={() => (searchable ? false : deactivate())}
 	on:keydown|preventDefault={handleKeyDown}
 	on:keyup|stopPropagation={handleKeyPress}
 	class="multiselect {containerClass}"
