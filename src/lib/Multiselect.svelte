@@ -398,6 +398,12 @@
 	//if true will allow option list to expand beyond size of input
 	export let overflow = false;
 
+	/**
+	 * Offset of dropdown menu to keep from screen's edge
+	 * @type {number}
+	 */
+	export let screenEdgeOffset: number = 5;
+
 	//#region pointerMixin.js props
 
 	/**
@@ -561,6 +567,16 @@
 		return optimizedHeight / optionHeight;
 	})();
 	//#endregion
+
+	let contentWrapperHorizontalOffset = 0;
+	$: if (listBind) {
+		const rect = listBind.getBoundingClientRect();
+		contentWrapperHorizontalOffset = Math.min(
+			screen.width - rect.x - rect.width - screenEdgeOffset,
+			0
+		);
+		// console.log('contentWrapperHorizontalOffset', contentWrapperHorizontalOffset);
+	}
 
 	//#region  multiselectMixin.js watch
 
@@ -1140,7 +1156,7 @@
 				on:blur={deactivate}
 				on:keydown|self|stopPropagation={handleKeyDown}
 				on:keyup|stopPropagation={handleKeyPress}
-				class="multiselect__input"
+				class="multiselect__input {$$restProps.inputClass}"
 				aria-controls={'listbox-' + id}
 			/>
 			<!-- content here -->
@@ -1164,12 +1180,13 @@
 
 	{#if isOpen}
 		<div
+			bind:this={listBind}
 			class="multiselect__content-wrapper"
+			tabindex="-1"
+			style:max-height="{optimizedHeight}px"
+			style:left="{contentWrapperHorizontalOffset}px"
 			transition:fade={{ duration: 75 }}
 			on:focus={activate}
-			tabindex="-1"
-			style="max-height: {optimizedHeight}px;	"
-			bind:this={listBind}
 		>
 			<ul class="multiselect__content" style={contentStyle} role="listbox" id={'listbox-' + id}>
 				<slot name="beforeList" />
