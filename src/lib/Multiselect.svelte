@@ -711,7 +711,6 @@
 	 * @param  {Boolean} block removing
 	 */
 	function select(option: any, key?: string | undefined) {
-		console.log('click handler called');
 		/* istanbul ignore else */
 		if (option.$isLabel && groupSelect) {
 			selectGroup(option);
