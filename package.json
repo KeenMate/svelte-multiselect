@@ -1,10 +1,10 @@
 {
 	"name": "@keenmate/svelte-multiselect",
 	"version": "0.1.2",
-	"svelte": "./dist/index.js",
-	"types": "./dist/index.d.ts",
 	"type": "module",
 	"repository": "https://github.com/keenmate/svelte-multiselect",
+	"svelte": "./dist/index.js",
+	"types": "./dist/index.d.ts",
 	"scripts": {
 		"dev": "vite dev",
 		"build": "vite build && npm run package",
