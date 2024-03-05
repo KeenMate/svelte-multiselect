@@ -322,6 +322,8 @@
 
 	export let containerClass = '';
 
+	export let inputClass = "";
+
 	//if true, will make multiselect same size as bootstrap size sm input
 	export let small = false;
 
@@ -1085,7 +1087,7 @@
 				on:blur={deactivate}
 				on:keydown|self|stopPropagation={handleKeyDown}
 				on:keyup|stopPropagation={handleKeyPress}
-				class="multiselect__input {$$restProps.inputClass}"
+				class="multiselect__input {inputClass}"
 				aria-controls={'listbox-' + id}
 			/>
 			<!-- content here -->
