@@ -322,7 +322,7 @@
 
 	export let containerClass = '';
 
-	export let inputClass = "";
+	export let inputClass = '';
 
 	//if true, will make multiselect same size as bootstrap size sm input
 	export let small = false;
@@ -346,6 +346,8 @@
 	export let showPointer = true;
 
 	export let optionHeight = small ? 31 : 40;
+
+	export let highlightSelected = false;
 
 	//#endregion
 
@@ -432,7 +434,7 @@
 
 	let isSingleLabelVisible: any;
 	$: isSingleLabelVisible =
-		(singleValue || singleValue === 0) && (!isOpen || !searchable) && !visibleValues.length;
+		(singleValue || singleValue === 0) && (!isOpen || !searchable) && !multiple;
 
 	let isPlaceholderVisible: boolean;
 	$: isPlaceholderVisible = !internalValue.length && (!searchable || !isOpen);
@@ -888,7 +890,7 @@
 	function optionHighlight(index: number, option: any, point: number) {
 		return (
 			(index === point && showPointer ? ' multiselect__option--highlight ' : '') +
-			(isSelected(option) ? ' multiselect__option--selected ' : '')
+			(	isSelected(option) && highlightSelected ? ' multiselect__option--selected ' : '')
 		);
 	}
 
@@ -1151,7 +1153,7 @@
 									data-deselect={deselectLabelText}
 									on:mousedown|preventDefault
 								>
-									<slot name="option" {option} {search} {index}>
+									<slot name="option" {option} {search} {index} selected={isSelected(option)}>
 										<span>{getOptionLabel(option)}</span>
 									</slot>
 								</span>
