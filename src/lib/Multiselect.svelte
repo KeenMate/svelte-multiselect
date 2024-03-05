@@ -12,6 +12,8 @@
 		stripGroups
 	} from './helpers.js';
 
+	type option = any;
+
 	let dispatch = createEventDispatcher();
 	//TODO find out what html element is refered by $el
 	let el: HTMLDivElement | null | undefined,
@@ -41,7 +43,7 @@
 	 * If `labal` prop is passed, label will equal option['label']
 	 * @type {Array}
 	 */
-	export let options: any[] = [];
+	export let options: option[] = [];
 
 	/**
 	 * Equivalent to the `multiple` attribute on a `<select>` input.
@@ -54,47 +56,39 @@
 	 * Presets the selected options value.
 	 * @type {Object||Array||String||Integer}
 	 */
-	export let value: any = [];
+	export let value: option = [];
 
 	/**
 	 * Key to compare objects
-	 * @default 'id'
-	 * @type {String}
 	 */
 	export let trackBy: string | null = null;
 
 	/**
 	 * Label to look for in option Object
-	 * @default 'label'
-	 * @type {String}
 	 */
 	export let label: string | null = null;
 
 	/**
 	 * Enable/disable search in options
 	 * @default true
-	 * @type {Boolean}
 	 */
 	export let searchable = true;
 
 	/**
 	 * Clear the search input after `)
 	 * @default true
-	 * @type {Boolean}
 	 */
 	export let clearOnSelect = true;
 
 	/**
 	 * Hide already selected options
 	 * @default false
-	 * @type {Boolean}
 	 */
 	export let hideSelected = false;
 
 	/**
 	 * Equivalent to the `placeholder` attribute on a `<select>` input.
 	 * @default 'Select option'
-	 * @type {String}
 	 */
 	export let placeholder = 'Select option';
 
@@ -106,12 +100,14 @@
 	export let allowEmpty = true;
 
 	/**
+	 * Used for creating stateless dropdown
 	 * Reset internalValue, search after internalValue changes.
 	 * Useful if want to create a stateless dropdown.
 	 * @default false
 	 * @type {Boolean}
 	 */
 	export let resetAfter = false;
+	// TODO rename to stateless
 
 	/**
 	 * Enable/disable closing after selecting an option
@@ -119,6 +115,7 @@
 	 * @type {Boolean}
 	 */
 	export let closeOnSelect = true;
+	// TODO rename to keepOpen
 
 	/**
 	 * Function to interpolate the custom label
@@ -161,10 +158,7 @@
 	export let max = 9999;
 
 	/**
-	 * Will be passed with all events as second param.
-	 * Useful for identifying events origin.
-	 * @default null
-	 * @type {String|Integer}
+	 * Id of search input
 	 * @deprecated
 	 */
 	export let id: string | null = null;
@@ -184,6 +178,7 @@
 	 * @type {String}
 	 */
 	export let groupValues: string | null = null;
+	// TODO rename to groupBy
 
 	/**
 	 * Name of the property containing
@@ -204,13 +199,11 @@
 	/**
 	 * Array of keyboard keys to block
 	 * when selecting
-	 * @default 1000
-	 * @type {String}
 	 */
 	export let blockKeys: string[] = [];
 
 	/**
-	 * Prevent from wiping up the search value
+	 * dont delete search after closing
 	 * @default false
 	 * @type {Boolean}
 	 */
@@ -218,8 +211,6 @@
 
 	/**
 	 * Select 1st options if value is empty
-	 * @default false
-	 * @type {Boolean}
 	 */
 	export let preselectFirst = false;
 
@@ -347,8 +338,6 @@
 
 	export let optionHeight = small ? 31 : 40;
 
-	export let highlightSelected = false;
-
 	//#endregion
 
 	//#region multiselectMixin.js data
@@ -367,11 +356,11 @@
 	//#endregion
 
 	//#region multiselectMixin.js computed
-	let internalValue: any[];
+	let internalValue: option[];
 
 	$: internalValue = value || value === 0 ? (Array.isArray(value) ? value : [value]) : [];
 
-	let filteredOptions: string | ArrayLike<any>;
+	let filteredOptions: string | ArrayLike<option>;
 	$: filteredOptions = (() => {
 		const _search = search || '';
 		const normalizedSearch = _search.toLowerCase().trim();
@@ -890,7 +879,7 @@
 	function optionHighlight(index: number, option: any, point: number) {
 		return (
 			(index === point && showPointer ? ' multiselect__option--highlight ' : '') +
-			(	isSelected(option) && highlightSelected ? ' multiselect__option--selected ' : '')
+			(isSelected(option) ? ' multiselect__option--selected ' : '')
 		);
 	}
 

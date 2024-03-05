@@ -25,7 +25,7 @@
 	limitText={getLimitText}
 	showLabels={false}
 	clearOnSelect={false}
-	highlightSelected={false}
+	showPointer={false}
 >
 	<!-- @ts-ignore -->
 	<svelte:fragment slot="option" let:option let:selected>
